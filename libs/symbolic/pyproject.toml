@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Substrate library for neural symbolic-regression research: data, eval, constants, equivalence. Framework-agnostic."
 requires-python = ">=3.13"
 dependencies = [
+    "numpy>=2.5.1",
     "sympy>=1.14.0",
 ]
 

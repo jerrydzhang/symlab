@@ -2,9 +2,21 @@
 name = "symlab"
 version = "0.0.0"
 requires-python = ">=3.13"
+dependencies = ["symbolic"]
 
 [tool.uv]
 package = false
 
 [tool.uv.workspace]
 members = ["libs/*", "hypotheses/*"]
+
+[tool.uv.sources]
+symbolic = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.15.20",
+    "ty>=0.0.56",
+]
+
