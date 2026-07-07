@@ -11,5 +11,6 @@ from .expression import (  # noqa: F401
     OperatorSet,
     Ref,
 )
+from .metrics import ScoreResult, score  # noqa: F401
 
 __version__ = "0.1.0"
