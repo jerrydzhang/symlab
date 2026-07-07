@@ -149,6 +149,40 @@ class TestExpression:
         result = expr.evaluate(X)
         np.testing.assert_allclose(result, X[0] + X[1])
 
+    def test_repr_and_str_reconstruct_symbolic_form(self):
+        b = ExpressionBuilder(OperatorSet.default(), 2)
+        x0, x1 = b.input(0), b.input(1)
+        expr = b.build(b.apply("add", x0, x1))
+        assert repr(expr) == "Expression(add(x0, x1))"
+        assert str(expr) == "add(x0, x1)"
+
+    def test_repr_and_str_distinguish_inputs_from_constants(self):
+        # Requires num_inputs: slot 2 is a constant (3.0), not x2.
+        b = ExpressionBuilder(OperatorSet.default(), 2)
+        expr = b.build(b.apply("add", b.input(0), b.constant(3.0)))
+        assert repr(expr) == "Expression(add(x0, 3.0))"
+        assert str(expr) == "add(x0, 3.0)"
+
+    def test_repr_and_str_handle_chained_unary_and_constant_output(self):
+        b = ExpressionBuilder(OperatorSet.default(), 1)
+        e = b.apply("exp", b.input(0))
+        expr = b.build(b.apply("sin", e))
+        assert repr(expr) == "Expression(sin(exp(x0)))"
+        assert str(expr) == "sin(exp(x0))"
+        b2 = ExpressionBuilder(OperatorSet.default(), 1)
+        expr2 = b2.build(b2.constant(-2.5))
+        assert repr(expr2) == "Expression(-2.5)"
+        assert str(expr2) == "-2.5"
+
+    def test_repr_and_str_render_shared_subexpression_without_error(self):
+        # DAG: add(m, m) — must not raise and must stay memoized.
+        b = ExpressionBuilder(OperatorSet.default(), 2)
+        x0, x1 = b.input(0), b.input(1)
+        m = b.apply("mul", x0, x1)
+        expr = b.build(b.apply("add", m, m))
+        assert repr(expr) == "Expression(add(mul(x0, x1), mul(x0, x1)))"
+        assert str(expr) == "add(mul(x0, x1), mul(x0, x1))"
+
 
 class TestExpressionBuilder:
     def test_input_returns_correct_ref(self):

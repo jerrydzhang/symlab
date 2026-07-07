@@ -1,7 +1,7 @@
 [project]
 name = "symbolic"
 version = "0.1.0"
-description = "Substrate library for neural symbolic-regression research: data, eval, constants, equivalence. Framework-agnostic."
+description = "Substrate library symbolic-regression"
 requires-python = ">=3.13"
 dependencies = [
     "numpy>=2.5.1",

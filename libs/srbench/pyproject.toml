@@ -1,0 +1,23 @@
+[project]
+name = "srbench"
+version = "0.1.0"
+description = "Portable driver over the official, vendored SRBench evaluation pipeline (https://github.com/cavalab/srbench). Pinned upstream commit; see srbench_upstream/PIN."
+requires-python = ">=3.13"
+dependencies = [
+    "numpy>=2.5.1",
+    "sympy>=1.14.0",
+    "pandas>=2.2",
+    "scikit-learn>=1.5",
+    "pyyaml>=6.0",
+    "symbolic",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/srbench"]
+
+[tool.uv.sources]
+symbolic = { workspace = true }

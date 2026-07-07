@@ -22,6 +22,7 @@
             packages = [
               pkgs.python3
               pkgs.uv
+              pkgs.julia-bin
             ];
 
             env = lib.optionalAttrs pkgs.stdenv.isLinux {
@@ -32,7 +33,7 @@
 
             shellHook = ''
               unset PYTHONPATH
-              uv sync
+              uv sync --all-packages
               . .venv/bin/activate
             '';
           };

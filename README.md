@@ -3,7 +3,7 @@ symlab is a symbolic-regression research project.
 
 ## Repository layout
 - `libs/symbolic` — shared substrate library.
-- `hypotheses/*` — library consumers used to develop and test new ideas.
+- `experiments/*` — controlled experiments and baselines; library consumers.
 
 ## Development environment
 symlab uses Nix for the dev shell and uv for Python. The shell provides `python3` and `uv`, sets `LD_LIBRARY_PATH` on Linux for native extension loading, and on entry runs `uv sync` and activates `.venv` automatically — so dependencies are installed and the venv is active as soon as you enter the shell.

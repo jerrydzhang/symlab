@@ -66,9 +66,42 @@ class Ref:
 @dataclass
 class Expression:
     opset: OperatorSet
+    num_inputs: int
     commands: npt.NDArray[np.uint16]
     constants: npt.NDArray[np.float64]
     output_index: int
+
+    def render(self, feature_names: list[str] | None = None) -> str:
+        const_base = self.num_inputs
+        cmd_base = const_base + len(self.constants)
+        cache: Dict[int, str] = {}
+
+        def _render(idx: int) -> str:
+            cached = cache.get(idx)
+            if cached is not None:
+                return cached
+            if idx < const_base:
+                s = feature_names[idx] if feature_names is not None else f"x{idx}"
+            elif idx < cmd_base:
+                s = repr(float(self.constants[idx - const_base]))
+            else:
+                opcode, p1, p2 = (int(v) for v in self.commands[idx - cmd_base])
+                arity, _ = self.opset.by_index(opcode)
+                name = self.opset.code_to_name(opcode)
+                if arity == 1:
+                    s = f"{name}({_render(p1)})"
+                else:
+                    s = f"{name}({_render(p1)}, {_render(p2)})"
+            cache[idx] = s
+            return s
+
+        return _render(self.output_index)
+
+    def __str__(self) -> str:
+        return self.render()
+
+    def __repr__(self) -> str:
+        return f"Expression({str(self)})"
 
     def evaluate(self, X: np.ndarray) -> np.ndarray:
         num_inputs, num_samples = X.shape
@@ -137,4 +170,6 @@ class ExpressionBuilder:
             dtype=np.uint16,
         ).reshape(-1, 3)
         constants = np.array(self._constants, dtype=np.float64)
-        return Expression(self.opset, commands, constants, resolve(output))
+        return Expression(
+            self.opset, self.num_inputs, commands, constants, resolve(output)
+        )

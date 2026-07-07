@@ -1,0 +1,20 @@
+Vendored from cavalab/srbench (https://github.com/cavalab/srbench)
+Pinned commit: 5b456d5108522c4da89aded2f07e0fb2bee4a3a4
+
+These files are the official SRBench evaluation pipeline. We run them
+unchanged so our results are bit-for-bit comparable to the published benchmark.
+
+License: GPLv3 (as inherited from srbench). This `srbench_upstream/` subpackage,
+and the `driver.py` that imports it, are therefore GPLv3 in combination. The rest
+of this repository (`libs/symbolic`, `hypotheses/*`) does NOT import srbench and
+remains under its own license; SRBench consumes those packages downstream.
+
+Files (copied from `experiment/`):
+  evaluate_model.py        — numeric eval + symbolic model extraction
+  assess_symbolic_model.py — gated symbolic recovery vs ground truth
+  symbolic_utils.py        — clean_pred_model, round_floats, complexity, get_sym_model
+  read_file.py             — PMLB .tsv.gz loader
+  utils.py                 — jsonify helper
+  metrics/evaluation.py    — simplicity metric
+
+To update: re-sparse-clone srbench, copy these files over, update the pin above.
