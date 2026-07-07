@@ -22,6 +22,7 @@
             packages = [
               pkgs.python3
               pkgs.uv
+              pkgs.just
               pkgs.julia-bin
             ];
 
