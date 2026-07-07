@@ -4,13 +4,20 @@ pipeline, and report numeric fit + symbolic recovery.
 The dataset path is a required argument — the script makes no assumption about
 where PMLB lives on your machine. To fetch one problem:
 
+    mkdir -p ~/data/pmlb && cd ~/data/pmlb
     git clone --filter=blob:none --sparse https://github.com/EpistasisLab/pmlb.git
-    cd pmlb && git sparse-checkout set datasets/feynman_I_12_1
+    cd pmlb
+    nix shell nixpkgs#git-lfs -c git lfs install
+    git sparse-checkout set datasets/feynman_I_12_1
     nix shell nixpkgs#git-lfs -c git lfs pull --include="datasets/feynman_I_12_1/*"
+
+The `git lfs install` step is required before the pull — without it, LFS
+reports "Skipping object checkout, Git LFS is not installed for this
+repository" and the .tsv.gz stays an LFS pointer file.
 
 Then:
 
-    uv run --package baselines python -m baselines.roundtrip \\
+    uv run --package baselines python -m baselines.roundtrip \
         /path/to/pmlb/datasets/feynman_I_12_1/feynman_I_12_1.tsv.gz
 
 Scaling is off by default so PySR recovers the equation in original form (for a
