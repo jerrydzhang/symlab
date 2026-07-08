@@ -14,13 +14,15 @@ them.
 """
 from __future__ import annotations
 
+from typing import Callable, cast
+
 import sympy as sp
 
 from .expression import Expression, ExpressionBuilder, OperatorSet, Ref
 
 # name -> sympy builder, keyed by OperatorSet op names. The default opset uses
 # exactly these names; custom opsets that reuse the names get the same mapping.
-_SYMPY_OPS = {
+_SYMPY_OPS: dict[str, Callable[..., sp.Expr]] = {
     "add": lambda a, b: a + b,
     "sub": lambda a, b: a - b,
     "mul": lambda a, b: a * b,
@@ -79,7 +81,7 @@ def from_sympy(
     opset = opset or OperatorSet.default()
     name_to_idx = {n: i for i, n in enumerate(feature_names)}
     locals_ = {n: sp.Symbol(n) for n in feature_names}
-    tree = sp.sympify(source, locals=locals_) if isinstance(source, str) else source
+    tree = sp.sympify(source, locals=locals_) if isinstance(source, str) else source  # ty: ignore
     b = ExpressionBuilder(opset, len(feature_names))
 
     def walk(node: sp.Expr) -> Ref:
@@ -91,9 +93,9 @@ def from_sympy(
         if node.is_Number:
             return b.constant(float(node))
         if isinstance(node, sp.sin) and "sin" in opset.operators:
-            return b.apply("sin", walk(node.args[0]))
+            return b.apply("sin", walk(cast(sp.Expr, node.args[0])))
         if isinstance(node, sp.exp) and "exp" in opset.operators:
-            return b.apply("exp", walk(node.args[0]))
+            return b.apply("exp", walk(cast(sp.Expr, node.args[0])))
         if isinstance(node, sp.Pow):
             return _walk_pow(node)
         if isinstance(node, sp.Mul):

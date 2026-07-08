@@ -36,7 +36,7 @@ from baselines.pysr import method
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0] if __doc__ else "Round-trip PySR baseline")
     ap.add_argument("dataset", type=Path, help="PMLB .tsv.gz with a sibling metadata.yaml")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--max-train-samples", type=int, default=2000,
@@ -71,8 +71,8 @@ def main() -> None:
     # the yardstick agrees with the in-pipeline verdict.
     expr = res.expression
     print("-" * 60)
-    print(f"expression     = {expr.render(res.feature_names)}   (canonical: {expr})")
     if expr is not None:
+        print(f"expression     = {expr.render(res.feature_names)}   (canonical: {expr})")
         re = assess(
             expression=expr,
             dataset=args.dataset,
@@ -80,6 +80,8 @@ def main() -> None:
             r2_test=res.r2_test,
         )
         print(f"re-scored recovered = {re.recovered}  (matches official: {re.recovered == res.recovered})")
+    else:
+        print("expression     = None")
 
 
 if __name__ == "__main__":

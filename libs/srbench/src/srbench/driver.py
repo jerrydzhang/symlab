@@ -42,8 +42,8 @@ def _import_official():
     upstream = str(_UPSTREAM_DIR)
     if upstream not in sys.path:
         sys.path.insert(0, upstream)
-    import assess_symbolic_model  # noqa: F401
-    import evaluate_model  # noqa: F401
+    import assess_symbolic_model  # noqa: F401  # ty: ignore[unresolved-import]
+    import evaluate_model  # noqa: F401  # ty: ignore[unresolved-import]
     return evaluate_model, assess_symbolic_model
 
 

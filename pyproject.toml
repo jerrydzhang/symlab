@@ -18,3 +18,13 @@ dev = [
     "ruff>=0.15.20",
     "ty>=0.0.56",
 ]
+
+[tool.ruff.lint.per-file-ignores]
+# Vendored SRBench upstream: pinned third-party code we don't modify
+# (refresh.sh validates the import cluster is closed). Lint is not actionable.
+"libs/srbench/src/srbench/srbench_upstream/**" = ["F401", "E402", "F541", "F841", "E711"]
+
+[tool.ty.src]
+# Same vendored cluster: imports resolve only via runtime sys.path
+# manipulation, so static analysis cannot (and should not) resolve them.
+exclude = ["libs/srbench/src/srbench/srbench_upstream/**"]
