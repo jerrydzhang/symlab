@@ -119,9 +119,9 @@ class EvalResult:
         """
         if not self.simplified_symbolic_model or not self.feature_names:
             return None
-        from symbolic.bridge import from_sympy
+        from symbolic import Expression
 
-        return from_sympy(self.simplified_symbolic_model, self.feature_names)
+        return Expression.from_sympy(self.simplified_symbolic_model, self.feature_names)
 
 
 def evaluate(

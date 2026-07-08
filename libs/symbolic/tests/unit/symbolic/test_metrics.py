@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from symbolic.expression import ExpressionBuilder, OperatorSet
-from symbolic.metrics import ScoreResult, score
+from symbolic import OperatorSet, ScoreResult, score
+from symbolic.expression import ExpressionBuilder
 
 
 class TestR2:
@@ -12,10 +12,10 @@ class TestR2:
         expr = b.build(b.apply("add", b.input(0), b.input(1)))
 
         rng = np.random.default_rng(0)
-        X = rng.standard_normal((2, 50))
-        y = X[0] + X[1]
+        X = rng.standard_normal((50, 2))
+        y = X[:, 0] + X[:, 1]
 
-        m = score(expr, X, y)
+        m = expr.score(X, y)
         assert m.r2 == pytest.approx(1.0)
 
     def test_r2_is_negative_when_worse_than_mean(self):
@@ -23,10 +23,10 @@ class TestR2:
         b = ExpressionBuilder(OperatorSet.default(), 1)
         expr = b.build(b.constant(5.0))
 
-        X = np.zeros((1, 4))
+        X = np.zeros((4, 1))
         y = np.array([1.0, 2.0, 3.0, 4.0])
 
-        m = score(expr, X, y)
+        m = expr.score(X, y)
         assert m.r2 < 0.0
 
 
@@ -36,10 +36,10 @@ class TestErrors:
         b = ExpressionBuilder(OperatorSet.default(), 1)
         expr = b.build(b.constant(2.0))
 
-        X = np.zeros((1, 3))
+        X = np.zeros((3, 1))
         y = np.array([1.0, 2.0, 4.0])
 
-        m = score(expr, X, y)
+        m = expr.score(X, y)
         assert m.mse == pytest.approx(5.0 / 3.0)  # (1 + 0 + 4) / 3
         assert m.mae == pytest.approx(1.0)        # (1 + 0 + 2) / 3
         # var(y) = 14/9 -> r2 = 1 - (5/3)/(14/9) = -1/14
@@ -54,10 +54,10 @@ class TestComplexity:
         prod = b.apply("mul", b.input(0), b.input(1))
         expr = b.build(b.apply("add", prod, c))
 
-        X = np.zeros((2, 4))
+        X = np.zeros((4, 2))
         y = np.arange(4, dtype=np.float64)
 
-        m = score(expr, X, y)
+        m = expr.score(X, y)
         assert m.complexity == 5
 
     def test_trivial_expression_complexity_equals_num_inputs(self):
@@ -65,10 +65,10 @@ class TestComplexity:
         b = ExpressionBuilder(OperatorSet.default(), 3)
         expr = b.build(b.input(0))
 
-        X = np.zeros((3, 4))
+        X = np.zeros((4, 3))
         y = np.arange(4, dtype=np.float64)
 
-        m = score(expr, X, y)
+        m = expr.score(X, y)
         assert m.complexity == expr.num_inputs == 3
 
 
@@ -81,10 +81,23 @@ class TestEdgeCases:
         assert len(expr.constants) == 0
 
         rng = np.random.default_rng(1)
-        X = rng.standard_normal((2, 20))
-        y = X[0] + X[1]
+        X = rng.standard_normal((20, 2))
+        y = X[:, 0] + X[:, 1]
 
-        m = score(expr, X, y)
+        m = expr.score(X, y)
         assert isinstance(m, ScoreResult)
         assert m.r2 == pytest.approx(1.0)
         assert m.complexity == 3  # 1 command + 0 constants + 2 inputs
+
+
+class TestDelegate:
+    def test_free_function_score_matches_method(self):
+        # metrics.score is a thin delegate for Expression.score.
+        b = ExpressionBuilder(OperatorSet.default(), 2)
+        expr = b.build(b.apply("add", b.input(0), b.input(1)))
+
+        rng = np.random.default_rng(2)
+        X = rng.standard_normal((30, 2))
+        y = X[:, 0] + X[:, 1]
+
+        assert score(expr, X, y) == expr.score(X, y)

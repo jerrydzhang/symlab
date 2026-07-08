@@ -72,7 +72,7 @@ class TestExpression:
         num_inputs = 2
         n_samples = 64
         # Use a nonzero range so div stays finite and deterministic.
-        X = rng.uniform(0.5, 2.0, size=(num_inputs, n_samples))
+        X = rng.uniform(0.5, 2.0, size=(n_samples, num_inputs))
 
         b = ExpressionBuilder(OperatorSet.default(), num_inputs)
         x0, x1 = b.input(0), b.input(1)
@@ -81,13 +81,13 @@ class TestExpression:
 
         result = expr.evaluate(X)
         assert result.shape == (n_samples,)
-        expected = ufunc(X[0], X[1]) if arity == 2 else ufunc(X[0])
+        expected = ufunc(X[:, 0], X[:, 1]) if arity == 2 else ufunc(X[:, 0])
         np.testing.assert_allclose(result, expected)
 
     def test_evaluate_output_shape_always_num_samples(self):
         rng = np.random.default_rng(1)
         for n_samples in (1, 5, 50):
-            X = rng.standard_normal((2, n_samples))
+            X = rng.standard_normal((n_samples, 2))
             b = ExpressionBuilder(OperatorSet.default(), 2)
             out = b.apply("add", b.input(0), b.input(1))
             result = b.build(out).evaluate(X)
@@ -95,14 +95,14 @@ class TestExpression:
 
     def test_evaluate_constant_broadcasts_across_samples(self):
         rng = np.random.default_rng(7)
-        X = rng.uniform(-1, 1, size=(2, 32))
+        X = rng.uniform(-1, 1, size=(32, 2))
         b = ExpressionBuilder(OperatorSet.default(), 2)
         out = b.apply("add", b.input(0), b.constant(3.0))
         result = b.build(out).evaluate(X)
-        np.testing.assert_allclose(result, X[0] + 3.0)
+        np.testing.assert_allclose(result, X[:, 0] + 3.0)
 
     def test_evaluate_single_sample_shape_and_value(self):
-        X = np.array([[2.0], [5.0]])
+        X = np.array([[2.0, 5.0]])
         b = ExpressionBuilder(OperatorSet.default(), 2)
         out = b.apply("mul", b.input(0), b.input(1))
         result = b.build(out).evaluate(X)
@@ -111,24 +111,24 @@ class TestExpression:
 
     def test_evaluate_div_elementwise(self):
         rng = np.random.default_rng(11)
-        X = rng.uniform(0.5, 3.0, size=(2, 40))
+        X = rng.uniform(0.5, 3.0, size=(40, 2))
         b = ExpressionBuilder(OperatorSet.default(), 2)
         out = b.apply("div", b.input(0), b.input(1))
         result = b.build(out).evaluate(X)
-        np.testing.assert_allclose(result, np.divide(X[0], X[1]))
+        np.testing.assert_allclose(result, np.divide(X[:, 0], X[:, 1]))
 
     def test_evaluate_identity_output_zero_commands(self):
         rng = np.random.default_rng(3)
-        X = rng.standard_normal((3, 25))
+        X = rng.standard_normal((25, 3))
         b = ExpressionBuilder(OperatorSet.default(), 3)
         expr = b.build(b.input(0))
         assert len(expr.commands) == 0
         result = expr.evaluate(X)
-        np.testing.assert_allclose(result, X[0])
+        np.testing.assert_allclose(result, X[:, 0])
 
     def test_evaluate_constant_output_zero_commands(self):
         rng = np.random.default_rng(4)
-        X = rng.standard_normal((2, 20))
+        X = rng.standard_normal((20, 2))
         b = ExpressionBuilder(OperatorSet.default(), 2)
         c = b.constant(-2.5)
         expr = b.build(c)
@@ -141,13 +141,13 @@ class TestExpression:
     def test_evaluate_zero_constants_expression(self):
         # No constants at all -> exercises constants[:, np.newaxis] on empty array.
         rng = np.random.default_rng(5)
-        X = rng.standard_normal((2, 18))
+        X = rng.standard_normal((18, 2))
         b = ExpressionBuilder(OperatorSet.default(), 2)
         out = b.apply("add", b.input(0), b.input(1))
         expr = b.build(out)
         assert len(expr.constants) == 0
         result = expr.evaluate(X)
-        np.testing.assert_allclose(result, X[0] + X[1])
+        np.testing.assert_allclose(result, X[:, 0] + X[:, 1])
 
     def test_repr_and_str_reconstruct_symbolic_form(self):
         b = ExpressionBuilder(OperatorSet.default(), 2)
@@ -227,13 +227,13 @@ class TestExpressionBuilder:
     def test_build_command_chaining(self):
         # sin(exp(x0)) - a command referencing an earlier command's result.
         rng = np.random.default_rng(2)
-        X = rng.uniform(-0.5, 0.5, size=(1, 27))
+        X = rng.uniform(-0.5, 0.5, size=(27, 1))
         b = ExpressionBuilder(OperatorSet.default(), 1)
         x0 = b.input(0)
         e = b.apply("exp", x0)
         out = b.apply("sin", e)
         result = b.build(out).evaluate(X)
-        np.testing.assert_allclose(result, np.sin(np.exp(X[0])))
+        np.testing.assert_allclose(result, np.sin(np.exp(X[:, 0])))
 
     def test_build_arrays_have_correct_dtypes_and_shapes(self):
         b = ExpressionBuilder(OperatorSet.default(), 2)
