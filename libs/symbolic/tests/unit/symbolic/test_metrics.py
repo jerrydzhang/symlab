@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from symbolic import OperatorSet, ScoreResult, score
+from symbolic import OperatorSet, ScoreResult
 from symbolic.expression import ExpressionBuilder
 
 
@@ -88,16 +88,3 @@ class TestEdgeCases:
         assert isinstance(m, ScoreResult)
         assert m.r2 == pytest.approx(1.0)
         assert m.complexity == 3  # 1 command + 0 constants + 2 inputs
-
-
-class TestDelegate:
-    def test_free_function_score_matches_method(self):
-        # metrics.score is a thin delegate for Expression.score.
-        b = ExpressionBuilder(OperatorSet.default(), 2)
-        expr = b.build(b.apply("add", b.input(0), b.input(1)))
-
-        rng = np.random.default_rng(2)
-        X = rng.standard_normal((30, 2))
-        y = X[:, 0] + X[:, 1]
-
-        assert score(expr, X, y) == expr.score(X, y)

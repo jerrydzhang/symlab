@@ -163,6 +163,47 @@ class Expression:
         complexity = len(self.commands) + len(self.constants) + self.num_inputs
         return ScoreResult(r2=r2, mse=mse, mae=mae, complexity=complexity)
 
+    def fit(self, X: np.ndarray, y: np.ndarray) -> Expression:
+        """Fit this expression's constants to data via nonlinear least-squares.
+
+        Returns a new ``Expression`` with optimized constants; the original is
+        not modified. Optimization starts from this expression's current
+        constant values and uses Levenberg-Marquardt with a finite-difference
+        Jacobian (computed by scipy).
+
+        ``X`` is ``(num_samples, num_inputs)``; ``y`` is ``(num_samples,)``.
+        """
+        from scipy.optimize import least_squares
+
+        def residuals(c: np.ndarray) -> np.ndarray:
+            fitted = Expression(
+                opset=self.opset,
+                num_inputs=self.num_inputs,
+                commands=self.commands,
+                constants=c,
+                output_index=self.output_index,
+            )
+            return fitted.evaluate(X) - y
+
+        # No constants to tune: return an unchanged copy.
+        if len(self.constants) == 0:
+            return Expression(
+                opset=self.opset,
+                num_inputs=self.num_inputs,
+                commands=self.commands,
+                constants=self.constants.copy(),
+                output_index=self.output_index,
+            )
+
+        result = least_squares(residuals, self.constants.copy(), method="lm")
+        return Expression(
+            opset=self.opset,
+            num_inputs=self.num_inputs,
+            commands=self.commands,
+            constants=result.x,
+            output_index=self.output_index,
+        )
+
     def to_sympy(self, feature_names: list[str]) -> sp.Expr:
         """Render this expression as a sympy ``Expr`` over named variables."""
         from .bridge import to_sympy as _to_sympy

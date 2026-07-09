@@ -5,6 +5,5 @@ Core (``expression``) is numpy-only; CAS interop is exposed as methods on
 bridge lazily, so ``import symbolic`` itself stays light.
 """
 from .expression import Expression, OperatorSet, ScoreResult  # noqa: F401
-from .metrics import score  # noqa: F401
 
 __version__ = "0.1.0"

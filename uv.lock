@@ -484,12 +484,14 @@ version = "0.1.0"
 source = { editable = "libs/symbolic" }
 dependencies = [
     { name = "numpy" },
+    { name = "scipy" },
     { name = "sympy" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "numpy", specifier = ">=2.5.1" },
+    { name = "scipy", specifier = ">=1.14.0" },
     { name = "sympy", specifier = ">=1.14.0" },
 ]
 

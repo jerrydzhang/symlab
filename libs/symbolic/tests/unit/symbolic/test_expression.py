@@ -265,3 +265,82 @@ class TestExpressionBuilder:
         # command rows resolve to flat slots: mul uses inputs 0,1; add uses cmd0(slot4) and const0(slot2).
         assert tuple(expr.commands[0][1:]) == (0, 1)
         assert tuple(expr.commands[1][1:]) == (4, 2)
+
+
+class TestFit:
+    """``Expression.fit`` optimizes constants via Levenberg-Marquardt."""
+
+    def test_fit_linear_recovers_both_constants(self):
+        # add(mul(c0, x), c1) with wrong constants -> fit to 3*x + 2.
+        # Built with ExpressionBuilder because from_sympy normalizes
+        # coefficients (1.0*x + 0.0 collapses to a single constant).
+        b = ExpressionBuilder(OperatorSet.default(), 1)
+        c0, c1 = b.constant(1.0), b.constant(0.0)
+        expr = b.build(b.apply("add", b.apply("mul", c0, b.input(0)), c1))
+
+        rng = np.random.default_rng(0)
+        X = rng.uniform(-3, 3, size=(200, 1))
+        y = 3.0 * X[:, 0] + 2.0
+
+        fitted = expr.fit(X, y)
+        np.testing.assert_allclose(fitted.constants, [3.0, 2.0], atol=1e-6)
+        np.testing.assert_allclose(fitted.evaluate(X), y, atol=1e-6)
+
+    def test_fit_nonlinear_recovers_constant(self):
+        # sin(c0*x) with c0 near target -> fit to sin(2.5*x). LM needs a
+        # close start for periodic objectives.
+        b = ExpressionBuilder(OperatorSet.default(), 1)
+        expr = b.build(b.apply("sin", b.apply("mul", b.constant(2.4), b.input(0))))
+
+        rng = np.random.default_rng(1)
+        X = rng.uniform(-2, 2, size=(200, 1))
+        y = np.sin(2.5 * X[:, 0])
+
+        fitted = expr.fit(X, y)
+        assert fitted.constants[0] == pytest.approx(2.5, abs=1e-4)
+        np.testing.assert_allclose(fitted.evaluate(X), y, atol=1e-6)
+
+    def test_fit_does_not_modify_original(self):
+        b = ExpressionBuilder(OperatorSet.default(), 1)
+        c0, c1 = b.constant(1.0), b.constant(0.0)
+        expr = b.build(b.apply("add", b.apply("mul", c0, b.input(0)), c1))
+        original = expr.constants.copy()
+
+        rng = np.random.default_rng(2)
+        X = rng.uniform(-3, 3, size=(100, 1))
+        y = 5.0 * X[:, 0] - 1.0
+
+        fitted = expr.fit(X, y)
+        np.testing.assert_array_equal(expr.constants, original)
+        # fit actually moved the constants away from the wrong start
+        assert not np.allclose(fitted.constants, original)
+
+    def test_fit_zero_constants_returns_copy(self):
+        # add(a, a) built directly has zero constants (from_sympy would
+        # collapse a + a to 2*a, introducing one).
+        b = ExpressionBuilder(OperatorSet.default(), 1)
+        expr = b.build(b.apply("add", b.input(0), b.input(0)))
+        assert len(expr.constants) == 0
+
+        rng = np.random.default_rng(3)
+        X = rng.uniform(-3, 3, size=(50, 1))
+        y = rng.standard_normal(50)  # arbitrary target; nothing to fit
+
+        fitted = expr.fit(X, y)
+        assert len(fitted.constants) == 0
+        assert fitted is not expr
+        np.testing.assert_array_equal(fitted.evaluate(X), expr.evaluate(X))
+
+    def test_fit_returns_expression_evaluating_close_to_target(self):
+        # exp(c0*x) fit to exp(0.7*x): the returned expression's evaluate
+        # must match y to high precision (constant opt actually worked).
+        b = ExpressionBuilder(OperatorSet.default(), 1)
+        expr = b.build(b.apply("exp", b.apply("mul", b.constant(0.5), b.input(0))))
+
+        rng = np.random.default_rng(4)
+        X = rng.uniform(-1, 1, size=(300, 1))
+        y = np.exp(0.7 * X[:, 0])
+
+        fitted = expr.fit(X, y)
+        np.testing.assert_allclose(fitted.constants, [0.7], atol=1e-6)
+        np.testing.assert_allclose(fitted.evaluate(X), y, atol=1e-8)
