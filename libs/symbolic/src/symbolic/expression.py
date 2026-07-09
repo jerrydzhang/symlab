@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-from enum import Enum
-from typing import TYPE_CHECKING, Tuple, Callable, Dict
 from dataclasses import dataclass, field
+from enum import Enum
+from typing import TYPE_CHECKING, Callable, Dict, Tuple
+from .bridge import from_sympy as _from_sympy, to_sympy as _to_sympy
 
-import numpy.typing as npt
 import numpy as np
+import numpy.typing as npt
+from scipy.optimize import least_squares
 
 if TYPE_CHECKING:
     import sympy as sp
@@ -155,7 +157,7 @@ class Expression:
         """
         y_pred = self.evaluate(X)
         residual = y - y_pred
-        mse = float(np.mean(residual ** 2))
+        mse = float(np.mean(residual**2))
         mae = float(np.mean(np.abs(residual)))
         var_y = float(np.var(y))
         denom = var_y if var_y != 0.0 else 1e-9
@@ -173,7 +175,6 @@ class Expression:
 
         ``X`` is ``(num_samples, num_inputs)``; ``y`` is ``(num_samples,)``.
         """
-        from scipy.optimize import least_squares
 
         def residuals(c: np.ndarray) -> np.ndarray:
             fitted = Expression(
@@ -206,14 +207,12 @@ class Expression:
 
     def to_sympy(self, feature_names: list[str]) -> sp.Expr:
         """Render this expression as a sympy ``Expr`` over named variables."""
-        from .bridge import to_sympy as _to_sympy
 
         return _to_sympy(self, feature_names)
 
     @classmethod
     def from_sympy(cls, source, feature_names, opset=None) -> Expression:
         """Build an ``Expression`` from a sympy expression or model string."""
-        from .bridge import from_sympy as _from_sympy
 
         return _from_sympy(source, feature_names, opset)
 
