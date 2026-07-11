@@ -6,7 +6,7 @@ app = marimo.App(width="medium")
 
 @app.cell
 def _():
-    from symbolic import OperatorSet, Expression
+    from symbolic import OperatorSet
     from symbolic.scoring import r2, complexity
     from symbolic.pipeline import (
         Pipeline,

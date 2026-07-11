@@ -85,7 +85,7 @@ def main() -> None:
     print("-" * 60)
     if expr is not None:
         print(
-            f"expression     = {expr.render(res.feature_names)}   (canonical: {expr})"
+            f"expression     = {expr._render(res.feature_names)}   (canonical: {expr})"
         )
         re = assess(
             expression=expr,

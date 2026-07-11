@@ -250,7 +250,7 @@ def assess(
     """
     evaluate_model, assess_symbolic_model = _import_official()
     dataset = str(Path(dataset).expanduser())
-    model_str = expression.render(feature_names)
+    model_str = expression._render(feature_names)
 
     tmpdir = tempfile.mkdtemp(prefix="srbench_assess_")
     try:

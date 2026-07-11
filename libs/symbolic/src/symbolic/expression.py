@@ -265,11 +265,11 @@ class Expression:
         """
         opset = opset or OperatorSet.default()
         if feature_names is None:
-            tree = sp.sympify(source) if isinstance(source, str) else source  # ty: ignore
+            tree = cast(sp.Expr, sp.sympify(source) if isinstance(source, str) else source)
             feature_names = _default_feature_names(tree)
         else:
             locals_ = {n: sp.Symbol(n) for n in feature_names}
-            tree = sp.sympify(source, locals=locals_) if isinstance(source, str) else source  # ty: ignore
+            tree = cast(sp.Expr, sp.sympify(source, locals=locals_) if isinstance(source, str) else source)  # ty: ignore[no-matching-overload]
         name_to_idx = {n: i for i, n in enumerate(feature_names)}
         b = ExpressionBuilder(opset, len(feature_names))
 
