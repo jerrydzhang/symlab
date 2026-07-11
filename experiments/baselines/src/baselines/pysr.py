@@ -5,6 +5,7 @@ SRBench's official pipeline calls its fit/predict and our ``model()`` returns a
 sympy-compatible string. PySR stays under its own license (AGPL-3.0); this thin
 wrapper is the only thing that touches it.
 """
+
 from __future__ import annotations
 
 from pysr import PySRRegressor

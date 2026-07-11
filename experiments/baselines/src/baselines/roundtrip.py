@@ -25,6 +25,7 @@ product, SRBench's default scaling introduces cross-terms that mask symbolic
 recovery — fine for numeric R², not for this check). Pass --scale for the
 faithful SRBench-default run.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -36,13 +37,24 @@ from baselines.pysr import method
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0] if __doc__ else "Round-trip PySR baseline")
-    ap.add_argument("dataset", type=Path, help="PMLB .tsv.gz with a sibling metadata.yaml")
+    ap = argparse.ArgumentParser(
+        description=__doc__.splitlines()[0] if __doc__ else "Round-trip PySR baseline"
+    )
+    ap.add_argument(
+        "dataset", type=Path, help="PMLB .tsv.gz with a sibling metadata.yaml"
+    )
     ap.add_argument("--seed", type=int, default=0)
-    ap.add_argument("--max-train-samples", type=int, default=2000,
-                    help="SRBench's subsampling knob (100k points is overkill here)")
-    ap.add_argument("--scale", action="store_true",
-                    help="enable SRBench's default X/y scaling (off by default)")
+    ap.add_argument(
+        "--max-train-samples",
+        type=int,
+        default=2000,
+        help="SRBench's subsampling knob (100k points is overkill here)",
+    )
+    ap.add_argument(
+        "--scale",
+        action="store_true",
+        help="enable SRBench's default X/y scaling (off by default)",
+    )
     args = ap.parse_args()
 
     m = method(random_state=args.seed)
@@ -72,14 +84,18 @@ def main() -> None:
     expr = res.expression
     print("-" * 60)
     if expr is not None:
-        print(f"expression     = {expr.render(res.feature_names)}   (canonical: {expr})")
+        print(
+            f"expression     = {expr.render(res.feature_names)}   (canonical: {expr})"
+        )
         re = assess(
             expression=expr,
             dataset=args.dataset,
             feature_names=res.feature_names,
             r2_test=res.r2_test,
         )
-        print(f"re-scored recovered = {re.recovered}  (matches official: {re.recovered == res.recovered})")
+        print(
+            f"re-scored recovered = {re.recovered}  (matches official: {re.recovered == res.recovered})"
+        )
     else:
         print("expression     = None")
 

@@ -33,9 +33,6 @@ def complexity(expression: Expression, X: np.ndarray, y: np.ndarray) -> float:
     Shares the ``(expression, X, y)`` signature for scorer-call uniformity but
     ignores ``X`` and ``y`` — complexity is a structural property.
     """
-    n = (
-        len(expression.commands)
-        + len(expression.constants)
-        + expression.num_inputs
-    )
+    _, _ = X, y
+    n = len(expression.commands) + len(expression.constants) + expression.num_inputs
     return float(n)

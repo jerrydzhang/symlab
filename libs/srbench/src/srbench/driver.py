@@ -16,6 +16,7 @@ Two entry points:
   it hands an ``Expression`` to the yardstick and gets SRBench-comparable
   recovery flags back.
 """
+
 from __future__ import annotations
 
 import json
@@ -44,6 +45,7 @@ def _import_official():
         sys.path.insert(0, upstream)
     import assess_symbolic_model  # noqa: F401  # ty: ignore[unresolved-import]
     import evaluate_model  # noqa: F401  # ty: ignore[unresolved-import]
+
     return evaluate_model, assess_symbolic_model
 
 
@@ -259,7 +261,9 @@ def assess(
             "symbolic_model": model_str,
             "r2_test": float(r2_test),
         }
-        json_path = Path(tmpdir) / f"{record['dataset']}_{algorithm}_{random_state}.json"
+        json_path = (
+            Path(tmpdir) / f"{record['dataset']}_{algorithm}_{random_state}.json"
+        )
         json.dump(record, open(json_path, "w"))
         assess_symbolic_model.assess_symbolic_model_from_file(str(json_path), dataset)
         updated = str(json_path) + ".updated"

@@ -27,11 +27,6 @@ def _opset() -> OperatorSet:
     return OperatorSet.default()
 
 
-# --------------------------------------------------------------------------- #
-# 1. RandomBinaryTree produces valid skeletons
-# --------------------------------------------------------------------------- #
-
-
 class TestRandomBinaryTree:
     def test_produces_valid_skeletons(self):
         gen = RandomBinaryTree(_opset(), rng=np.random.default_rng(1))
@@ -73,11 +68,6 @@ class TestRandomBinaryTree:
         assert np.all(skel.expression.constants == 0.0)
 
 
-# --------------------------------------------------------------------------- #
-# 2. MantissaExponentConstants fills all placeholders
-# --------------------------------------------------------------------------- #
-
-
 class TestMantissaExponentConstants:
     def test_fills_all_placeholders_nonzero(self):
         gen = RandomBinaryTree(_opset(), rng=np.random.default_rng(5))
@@ -117,11 +107,6 @@ class TestMantissaExponentConstants:
         assert np.all(np.abs(pop.expression.constants) >= 0.01 - 1e-12)
 
 
-# --------------------------------------------------------------------------- #
-# 3. UniformSamplePoints produces correct shapes
-# --------------------------------------------------------------------------- #
-
-
 class TestUniformSamplePoints:
     def test_correct_shapes(self):
         gen = RandomBinaryTree(_opset(), rng=np.random.default_rng(11))
@@ -144,11 +129,6 @@ class TestUniformSamplePoints:
         pop = MantissaExponentConstants(rng=np.random.default_rng(18))(gen(None))
         ev = UniformSamplePoints(lo=-2, hi=2, n=40, rng=np.random.default_rng(19))(pop)
         assert np.all(ev.X >= -2.0) and np.all(ev.X <= 2.0)
-
-
-# --------------------------------------------------------------------------- #
-# 4. Full pipeline produces valid evaluated entries
-# --------------------------------------------------------------------------- #
 
 
 class TestFullPipeline:
@@ -184,11 +164,6 @@ class TestFullPipeline:
         assert isinstance(first, Evaluated)
 
 
-# --------------------------------------------------------------------------- #
-# 5. is_valid filter drops NaN and overflow
-# --------------------------------------------------------------------------- #
-
-
 def _evaluated_with(y: np.ndarray) -> Evaluated:
     """Build a throwaway Evaluated carrying the given ``y`` for filter tests."""
     b = ExpressionBuilder(_opset(), 1)
@@ -202,7 +177,9 @@ class TestIsValid:
         assert is_valid()(_evaluated_with(np.array([1.0, np.nan, 2.0]))) is False
 
     def test_rejects_overflow(self):
-        assert is_valid(overflow_threshold=5e4)(_evaluated_with(np.array([1e6]))) is False
+        assert (
+            is_valid(overflow_threshold=5e4)(_evaluated_with(np.array([1e6]))) is False
+        )
 
     def test_rejects_constant_output(self):
         assert is_valid()(_evaluated_with(np.full(8, 3.0))) is False
@@ -216,11 +193,6 @@ class TestIsValid:
         y = np.array([500.0, 1000.0, 750.0])
         assert is_valid()(_evaluated_with(y)) is True
         assert is_valid(overflow_threshold=1e2)(_evaluated_with(y)) is False
-
-
-# --------------------------------------------------------------------------- #
-# 6. Type progression
-# --------------------------------------------------------------------------- #
 
 
 class TestTypeProgression:

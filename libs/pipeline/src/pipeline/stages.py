@@ -18,11 +18,6 @@ from symbolic.expression import ExpressionBuilder, Ref
 from .types import Evaluated, Populated, Skeleton
 
 
-# --------------------------------------------------------------------------- #
-# 1. RandomBinaryTree — None -> Skeleton
-# --------------------------------------------------------------------------- #
-
-
 @dataclass
 class _Node:
     """Mutable recursive tree representation during skeleton generation.
@@ -151,11 +146,6 @@ class RandomBinaryTree:
         return builder.build(emit(node))
 
 
-# --------------------------------------------------------------------------- #
-# 2. MantissaExponentConstants — Skeleton -> Populated
-# --------------------------------------------------------------------------- #
-
-
 class MantissaExponentConstants:
     """Replace placeholder constants with ``sign * mantissa * 10**exponent``.
 
@@ -201,11 +191,6 @@ class MantissaExponentConstants:
         return sign * mantissa * 10.0**exponent
 
 
-# --------------------------------------------------------------------------- #
-# 3. UniformSamplePoints — Populated -> Evaluated
-# --------------------------------------------------------------------------- #
-
-
 class UniformSamplePoints:
     """Sample ``X`` uniformly and compute ``y`` by evaluating the expression."""
 
@@ -225,11 +210,6 @@ class UniformSamplePoints:
         X = self.rng.uniform(self.lo, self.hi, size=(self.n, input.num_inputs))
         y = input.expression.evaluate(X)
         return Evaluated(expression=input.expression, X=X, y=y)
-
-
-# --------------------------------------------------------------------------- #
-# 4. is_valid — filter predicate factory
-# --------------------------------------------------------------------------- #
 
 
 def is_valid(overflow_threshold: float = 5e4) -> Callable[[Evaluated], bool]:

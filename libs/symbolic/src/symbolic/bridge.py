@@ -12,6 +12,7 @@ integer ``Pow`` back into our binary command DAG, and raises on operators
 outside the opset (e.g. ``sqrt``, ``log``) rather than silently inventing
 them.
 """
+
 from __future__ import annotations
 
 from typing import Callable, cast

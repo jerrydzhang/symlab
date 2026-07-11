@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 
+
 def jsonify(d):
     """recursively formats dicts for json serialization"""
     if isinstance(d, list):
@@ -13,9 +14,9 @@ def jsonify(d):
             d[k] = jsonify(d[k])
     elif isinstance(d, np.ndarray):
         return d.tolist()
-    elif d.__class__.__name__.startswith('int'):
+    elif d.__class__.__name__.startswith("int"):
         return int(d)
-    elif d.__class__.__name__.startswith('float'):
+    elif d.__class__.__name__.startswith("float"):
         return float(d)
     elif isinstance(d, pd.DataFrame) or isinstance(d, pd.Series):
         return d.values.tolist()
@@ -24,7 +25,6 @@ def jsonify(d):
     elif d == None:
         return None
     elif not isinstance(d, str):
-        print("WARNING: attempting to store ",d,"as a str for json")
+        print("WARNING: attempting to store ", d, "as a str for json")
         return str(d)
     return d
-

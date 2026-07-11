@@ -18,11 +18,6 @@ def _build(fn: Callable[[ExpressionBuilder, OperatorSet], Expression]) -> Expres
     return fn(b, opset)
 
 
-# --------------------------------------------------------------------------- #
-# r2
-# --------------------------------------------------------------------------- #
-
-
 class TestR2:
     def test_is_one_when_predictions_match(self):
         # add(x0, x1) evaluated on random data is the ground-truth y.
@@ -72,11 +67,6 @@ class TestR2:
         assert np.isfinite(result)
 
 
-# --------------------------------------------------------------------------- #
-# complexity
-# --------------------------------------------------------------------------- #
-
-
 class TestComplexity:
     def test_counts_commands_constants_and_inputs(self):
         # 2 inputs + 1 constant + 2 commands (mul, add) -> 5.0
@@ -107,11 +97,6 @@ class TestComplexity:
         a = complexity(expr, np.zeros((1, 2)), np.zeros(1))
         b = complexity(expr, np.ones((999, 2)), np.full(999, 1e9))
         assert a == b
-
-
-# --------------------------------------------------------------------------- #
-# contract
-# --------------------------------------------------------------------------- #
 
 
 class TestReturnType:
