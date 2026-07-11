@@ -225,3 +225,21 @@ def is_valid(overflow_threshold: float = 5e4) -> Callable[[Evaluated], bool]:
         return True
 
     return check
+
+
+class Simplify:
+    """Canonicalize an expression's structure via sympy.simplify.
+
+    Collapses like terms, folds constants, drops dead subexpressions.
+    Destructive to tree topology — use when you care about the function,
+    not the specific tree structure.  Operators sympy introduces outside
+    the expression's opset raise ValueError (propagates, does not swallow).
+    """
+
+    def __call__(self, input: Populated) -> Populated:
+        simplified = input.expression.simplify()
+        return Populated(
+            opset=input.opset,
+            num_inputs=input.num_inputs,
+            expression=simplified,
+        )

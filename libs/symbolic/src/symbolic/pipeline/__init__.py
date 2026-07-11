@@ -9,6 +9,7 @@ from .pipeline import Pipeline, Stage
 from .stages import (
     MantissaExponentConstants,
     RandomBinaryTree,
+    Simplify,
     UniformSamplePoints,
     is_valid,
 )
@@ -20,6 +21,7 @@ __all__ = [
     "Pipeline",
     "Populated",
     "RandomBinaryTree",
+    "Simplify",
     "Skeleton",
     "Stage",
     "UniformSamplePoints",

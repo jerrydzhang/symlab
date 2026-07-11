@@ -15,6 +15,7 @@ from symbolic.pipeline import (
     Pipeline,
     Populated,
     RandomBinaryTree,
+    Simplify,
     Skeleton,
     UniformSamplePoints,
     is_valid,
@@ -206,3 +207,46 @@ class TestTypeProgression:
 
         ev = UniformSamplePoints(rng=rng)(pop)
         assert isinstance(ev, Evaluated)
+
+
+class TestSimplify:
+    def test_simplify_collapses_constant_arithmetic(self):
+        # add(1, 2) -> 3 — constants fold
+        b = ExpressionBuilder(OperatorSet.default(), 1)
+        expr = b.build(b.apply("add", b.constant(1.0), b.constant(2.0)))
+        pop = Populated(opset=OperatorSet.default(), num_inputs=1, expression=expr)
+        result = Simplify()(pop)
+        # Should be a single constant node
+        assert len(result.expression.commands) == 0
+        assert result.expression.constants[0] == pytest.approx(3.0)
+
+    def test_simplify_preserves_semantics(self):
+        # mul(x0, add(x0, 0)) should simplify to mul(x0, x0) or similar
+        # but the simplified expression must evaluate the same as original
+        b = ExpressionBuilder(OperatorSet.default(), 1)
+        x = b.input(0)
+        expr = b.build(b.apply("mul", x, b.apply("add", x, b.constant(0.0))))
+        pop = Populated(opset=OperatorSet.default(), num_inputs=1, expression=expr)
+
+        rng = np.random.default_rng(0)
+        X = rng.uniform(-5, 5, size=(100, 1))
+
+        result = Simplify()(pop)
+        np.testing.assert_allclose(
+            result.expression.evaluate(X),
+            pop.expression.evaluate(X),
+            atol=1e-10,
+        )
+
+    def test_simplify_in_pipeline_between_population_and_sampling(self):
+        # Verify it slots into the type chain correctly
+        rng = np.random.default_rng(42)
+        gen = (
+            Pipeline(RandomBinaryTree(opset=OperatorSet.default(), max_ops=5, rng=rng))
+            .then(MantissaExponentConstants(rng=rng))
+            .then(Simplify())
+            .then(UniformSamplePoints(n=50, rng=rng))
+            .filter(is_valid())
+        )
+        entries = list(gen.iter(5))
+        assert len(entries) >= 1

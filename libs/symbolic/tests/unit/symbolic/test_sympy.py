@@ -1,6 +1,6 @@
-"""Tests for the sympy bridge (``symbolic.bridge``).
+"""Tests for sympy interop on ``Expression`` (``to_sympy`` / ``from_sympy``).
 
-The bridge is the only path SRBench model strings take into our
+``from_sympy`` is the only path SRBench model strings take into our
 ``Expression`` DAG, and it does non-trivial folding of sympy's normalized
 n-ary ``Add``/``Mul`` and integer ``Pow``. These tests cover:
 
@@ -52,7 +52,7 @@ def _from(src: str) -> Expression:
 
 
 # Expressions used by multiple parametrized tests. Each entry exercises both
-# directions of the bridge and the numeric path.
+# directions of the round-trip and the numeric path.
 ROUND_TRIP_CASES = [
     pytest.param("a + b", id="add"),
     pytest.param("a * b", id="mul"),
@@ -99,7 +99,7 @@ class TestFoldingStructure:
         """Return (render, opcode-name list, constants) for a parsed source."""
         expr = _from(src)
         names = [OP.code_to_name(int(row[0])) for row in expr.commands]
-        return expr.render(FEATURES), names, list(expr.constants)
+        return expr._render(FEATURES), names, list(expr.constants)
 
     def test_pow_integer_positive_expands_to_mul_chain(self):
         # a**2 -> mul(a, a): exactly one binary command, no pow anywhere.
@@ -238,3 +238,68 @@ class TestEdgeCases:
         back = Expression.from_sympy(rendered, FEATURES, OP)
         expected = _X[:, 0] ** 2 + _X[:, 0] ** 2
         np.testing.assert_allclose(back.evaluate(_X), expected, rtol=1e-12, atol=1e-12)
+
+
+class TestFeatureNameDefaults:
+    """Optional/default ``feature_names`` handling on to_sympy/from_sympy.
+
+    These exercise *our* code paths (default-name inference and slicing), not
+    sympy's: equality is checked only via ``sp.simplify(a - b) == 0`` and the
+    rest is structural (``num_inputs``, exception types/messages).
+    """
+
+    def test_to_sympy_none_applies_default_x_names(self):
+        # A 2-input expression rendered with no feature_names uses x0, x1.
+        b = ExpressionBuilder(OP, 2)
+        expr = b.build(b.apply("add", b.input(0), b.input(1)))
+
+        rendered = str(expr.to_sympy())
+        assert "x0" in rendered
+        assert "x1" in rendered
+        # The default must agree with explicitly passing the same names.
+        assert sp.simplify(expr.to_sympy() - expr.to_sympy(["x0", "x1"])) == 0
+
+    def test_to_sympy_extra_feature_names_are_sliced_away(self):
+        # Only the first num_inputs names are referenced; extras are ignored.
+        b = ExpressionBuilder(OP, 2)
+        expr = b.build(b.apply("mul", b.input(0), b.input(1)))
+
+        two = expr.to_sympy(["a", "b"])
+        three = expr.to_sympy(["a", "b", "c"])
+        assert sp.simplify(two - three) == 0
+
+    def test_to_sympy_too_few_feature_names_raises(self):
+        b = ExpressionBuilder(OP, 2)
+        expr = b.build(b.apply("add", b.input(0), b.input(1)))
+        with pytest.raises(ValueError):
+            expr.to_sympy(["a"])
+
+    def test_from_sympy_none_infers_contiguous_range_with_gap(self):
+        # x0 + x1 -> num_inputs == 2.
+        assert Expression.from_sympy("x0 + x1").num_inputs == 2
+        # A gap is preserved: x1 is unused, but the range extends to x2.
+        assert Expression.from_sympy("x0*x2").num_inputs == 3
+
+    def test_from_sympy_none_rejects_non_x_int_symbols(self):
+        with pytest.raises(ValueError, match=r"x\{int\}"):
+            Expression.from_sympy("foo + bar")
+
+    def test_from_sympy_explicit_names_accept_subset(self):
+        # Declares 3 features; the expression references only one of them.
+        expr = Expression.from_sympy("a + a", ["a", "b", "c"])
+        assert expr.num_inputs == 3
+
+    def test_default_to_sympy_and_from_sympy_compose(self):
+        # Both defaults together: infer names on the way in, default names on
+        # the way out, and the expression survives unchanged.
+        e = Expression.from_sympy("x0*x1 + sin(x0)")
+        expected = sp.sympify("x0*x1 + sin(x0)")
+        assert sp.simplify(e.to_sympy() - expected) == 0
+
+
+class TestEulerE:
+    def test_from_sympy_handles_euler_e(self):
+        """sp.E (Euler's number) should become a constant, not raise."""
+        expr = Expression.from_sympy("E*x0", ["x0"])
+        assert len(expr.constants) == 1
+        assert expr.constants[0] == pytest.approx(np.e)

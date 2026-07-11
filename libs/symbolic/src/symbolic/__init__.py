@@ -1,10 +1,8 @@
 """Symbolic-regression substrate: a flat command-DAG expression representation.
 
-Core (``expression``) is numpy-only; CAS interop is exposed as methods on
-:class:`Expression` (``to_sympy`` / ``from_sympy``) that import the sympy
-bridge lazily, so ``import symbolic`` itself stays light. The data-generation
-:mod:`~symbolic.pipeline` and the :mod:`~symbolic.scoring` free functions are
-re-exported here for convenience.
+CAS interop (``to_sympy`` / ``from_sympy`` / ``simplify``) lives directly on
+:class:`Expression`. The data-generation :mod:`~symbolic.pipeline` and the
+:mod:`~symbolic.scoring` free functions are re-exported here for convenience.
 """
 
 from .expression import Expression, OperatorSet  # noqa: F401
@@ -14,6 +12,7 @@ from .pipeline import (  # noqa: F401
     Pipeline,
     Populated,
     RandomBinaryTree,
+    Simplify,
     Skeleton,
     Stage,
     UniformSamplePoints,
@@ -29,6 +28,7 @@ __all__ = [
     "Pipeline",
     "Populated",
     "RandomBinaryTree",
+    "Simplify",
     "Skeleton",
     "Stage",
     "UniformSamplePoints",

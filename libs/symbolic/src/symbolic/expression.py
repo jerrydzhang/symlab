@@ -2,17 +2,45 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TYPE_CHECKING, Callable, Dict, Tuple
+from typing import Callable, Dict, Tuple, cast
 
 import numpy as np
 import numpy.typing as npt
 from scipy.optimize import least_squares
-
-if TYPE_CHECKING:
-    import sympy as sp
+import sympy as sp
 
 UnaryCallable = Callable[[np.float64], np.float64]
 BinaryCallable = Callable[[np.float64, np.float64], np.float64]
+
+# name -> sympy builder, keyed by OperatorSet op names. The default opset uses
+# exactly these names; custom opsets that reuse the names get the same mapping.
+_SYMPY_OPS: dict[str, Callable[..., sp.Expr]] = {
+    "add": lambda a, b: a + b,
+    "sub": lambda a, b: a - b,
+    "mul": lambda a, b: a * b,
+    "div": lambda a, b: a / b,
+    "sin": sp.sin,
+    "exp": sp.exp,
+}
+
+
+def _default_feature_names(tree: sp.Expr) -> list[str]:
+    """Infer ``x0 .. xn`` from a sympy tree's free symbols.
+
+    ``n`` is one past the largest ``x{int}`` index, so unused middle inputs are
+    preserved. Any symbol not matching ``x{int}`` raises ``ValueError``.
+    """
+    indices = []
+    for s in tree.free_symbols:
+        name = str(s)
+        if not (name.startswith("x") and name[1:].isdigit()):
+            raise ValueError(
+                f"cannot default feature_names: symbol {name!r} is not of the "
+                f"form 'x{{int}}'; pass feature_names explicitly"
+            )
+        indices.append(int(name[1:]))
+    n = max(indices) + 1 if indices else 0
+    return [f"x{i}" for i in range(n)]
 
 
 @dataclass(frozen=True)
@@ -78,12 +106,12 @@ class Expression:
     constants: npt.NDArray[np.float64]
     output_index: int
 
-    def render(self, feature_names: list[str] | None = None) -> str:
+    def _render(self, feature_names: list[str] | None = None) -> str:
         const_base = self.num_inputs
         cmd_base = const_base + len(self.constants)
         cache: Dict[int, str] = {}
 
-        def _render(idx: int) -> str:
+        def _at(idx: int) -> str:
             cached = cache.get(idx)
             if cached is not None:
                 return cached
@@ -96,16 +124,16 @@ class Expression:
                 arity, _ = self.opset.by_index(opcode)
                 name = self.opset.code_to_name(opcode)
                 if arity == 1:
-                    s = f"{name}({_render(p1)})"
+                    s = f"{name}({_at(p1)})"
                 else:
-                    s = f"{name}({_render(p1)}, {_render(p2)})"
+                    s = f"{name}({_at(p1)}, {_at(p2)})"
             cache[idx] = s
             return s
 
-        return _render(self.output_index)
+        return _at(self.output_index)
 
     def __str__(self) -> str:
-        return self.render()
+        return self._render()
 
     def __repr__(self) -> str:
         return f"Expression({str(self)})"
@@ -124,16 +152,17 @@ class Expression:
         memory[:num_inputs] = X.T
         memory[num_inputs:node_offset] = self.constants[:, np.newaxis]
 
-        for i, row in enumerate(self.commands):
-            opcode, p1, p2 = int(row[0]), int(row[1]), int(row[2])
+        with np.errstate(divide="ignore", invalid="ignore"):
+            for i, row in enumerate(self.commands):
+                opcode, p1, p2 = int(row[0]), int(row[1]), int(row[2])
 
-            arity, func = self.opset.by_index(opcode)
-            if arity == 1:
-                result = func(memory[p1])
-            else:
-                result = func(memory[p1], memory[p2])
+                arity, func = self.opset.by_index(opcode)
+                if arity == 1:
+                    result = func(memory[p1])
+                else:
+                    result = func(memory[p1], memory[p2])
 
-            memory[node_offset + i] = result
+                memory[node_offset + i] = result
 
         return memory[self.output_index]
 
@@ -177,18 +206,165 @@ class Expression:
             output_index=self.output_index,
         )
 
-    def to_sympy(self, feature_names: list[str]) -> sp.Expr:
-        """Render this expression as a sympy ``Expr`` over named variables."""
-        from .bridge import to_sympy as _to_sympy
+    def to_sympy(self, feature_names: list[str] | None = None) -> sp.Expr:
+        """Render this expression as a sympy ``Expr`` over named variables.
 
-        return _to_sympy(self, feature_names)
+        ``feature_names`` defaults to ``x0 .. x{num_inputs-1}``. Extra names
+        beyond ``num_inputs`` are accepted (the tree only references its first
+        ``num_inputs`` inputs); fewer raises ``ValueError``.
+        """
+        if feature_names is None:
+            feature_names = [f"x{i}" for i in range(self.num_inputs)]
+        if len(feature_names) < self.num_inputs:
+            raise ValueError(
+                f"feature_names has {len(feature_names)} entries; "
+                f"Expression needs at least {self.num_inputs}"
+            )
+        syms = [sp.Symbol(n) for n in feature_names[: self.num_inputs]]
+        const_base = self.num_inputs
+        cmd_base = const_base + len(self.constants)
+        cache: dict[int, sp.Expr] = {}
+
+        def at(idx: int) -> sp.Expr:
+            cached = cache.get(idx)
+            if cached is not None:
+                return cached
+            if idx < const_base:
+                v: sp.Expr = syms[idx]
+            elif idx < cmd_base:
+                v = sp.Float(float(self.constants[idx - const_base]))
+            else:
+                row = self.commands[idx - cmd_base]
+                opcode, p1, p2 = int(row[0]), int(row[1]), int(row[2])
+                arity, _ = self.opset.by_index(opcode)
+                name = self.opset.code_to_name(opcode)
+                fn = _SYMPY_OPS.get(name)
+                if fn is None:
+                    raise ValueError(f"no sympy mapping for operator {name!r}")
+                v = fn(at(p1)) if arity == 1 else fn(at(p1), at(p2))
+            cache[idx] = v
+            return v
+
+        return at(self.output_index)
 
     @classmethod
-    def from_sympy(cls, source, feature_names, opset=None) -> Expression:
-        """Build an ``Expression`` from a sympy expression or model string."""
-        from .bridge import from_sympy as _from_sympy
+    def from_sympy(
+        cls,
+        source: str | sp.Expr,
+        feature_names: list[str] | None = None,
+        opset: OperatorSet | None = None,
+    ) -> Expression:
+        """Build an ``Expression`` from a sympy expression or model string.
 
-        return _from_sympy(source, feature_names, opset)
+        ``feature_names`` fixes the variable order and the result's
+        ``num_inputs``; the expression may reference any subset of them. It
+        defaults to ``x0 .. xn`` inferred from the free symbols in ``source``
+        (which must all follow the ``x{int}`` convention, else pass
+        ``feature_names`` explicitly). Operators outside ``opset`` raise
+        ``ValueError``.
+        """
+        opset = opset or OperatorSet.default()
+        if feature_names is None:
+            tree = sp.sympify(source) if isinstance(source, str) else source  # ty: ignore
+            feature_names = _default_feature_names(tree)
+        else:
+            locals_ = {n: sp.Symbol(n) for n in feature_names}
+            tree = sp.sympify(source, locals=locals_) if isinstance(source, str) else source  # ty: ignore
+        name_to_idx = {n: i for i, n in enumerate(feature_names)}
+        b = ExpressionBuilder(opset, len(feature_names))
+
+        def walk(node: sp.Expr) -> Ref:
+            if node.is_Symbol:
+                key = str(node)
+                if key not in name_to_idx:
+                    raise ValueError(f"unknown symbol {key!r}; not in feature_names")
+                return b.input(name_to_idx[key])
+            if node.is_Number:
+                return b.constant(float(node))
+            if isinstance(node, sp.sin) and "sin" in opset.operators:
+                return b.apply("sin", walk(cast(sp.Expr, node.args[0])))
+            if isinstance(node, sp.exp) and "exp" in opset.operators:
+                return b.apply("exp", walk(cast(sp.Expr, node.args[0])))
+            if isinstance(node, sp.Pow):
+                return _walk_pow(node)
+            if isinstance(node, sp.Mul):
+                return _walk_mul(node)
+            if isinstance(node, sp.Add):
+                return _walk_add(node)
+            if node == sp.E:
+                return b.constant(float(sp.E))
+            if node == sp.zoo:
+                return b.constant(float("nan"))
+            raise ValueError(f"unsupported sympy node: {node} ({type(node).__name__})")
+
+        def _walk_pow(node: sp.Pow) -> Ref:
+            base, e = node.args
+            if e.is_Integer:
+                n = int(e)
+                if n >= 1:
+                    acc = walk(base)
+                    for _ in range(n - 1):
+                        acc = b.apply("mul", acc, walk(base))
+                    return acc
+                if n <= -1:
+                    acc = walk(base)
+                    for _ in range(-n - 1):
+                        acc = b.apply("mul", acc, walk(base))
+                    return b.apply("div", b.constant(1.0), acc)
+            raise ValueError(f"unsupported exponent {e} in {node}")
+
+        def _walk_mul(node: sp.Mul) -> Ref:
+            coeff, rest = node.as_coeff_Mul()
+            num: list[Ref] = []
+            den: list[Ref] = []
+            for f in sp.Mul.make_args(rest):
+                if isinstance(f, sp.Pow) and f.args[1].is_Integer and int(f.args[1]) < 0:
+                    for _ in range(-int(f.args[1])):
+                        den.append(walk(f.args[0]))
+                else:
+                    num.append(walk(f))
+            if coeff != 1:
+                num.insert(0, b.constant(float(coeff)))
+            if not num:
+                num.append(b.constant(1.0))
+            acc = num[0]
+            for r in num[1:]:
+                acc = b.apply("mul", acc, r)
+            for d in den:
+                acc = b.apply("div", acc, d)
+            return acc
+
+        def _walk_add(node: sp.Add) -> Ref:
+            pos_terms: list[sp.Expr] = []
+            neg_terms: list[sp.Expr] = []
+            for t in node.args:
+                coeff = t if t.is_Number else t.as_coeff_Mul(rational=False)[0]
+                (neg_terms if coeff < 0 else pos_terms).append(t)
+            if pos_terms:
+                acc = walk(pos_terms[0])
+                for t in pos_terms[1:]:
+                    acc = b.apply("add", acc, walk(t))
+            else:
+                acc = b.constant(0.0)
+            for t in neg_terms:
+                acc = b.apply("sub", acc, walk(-t))
+            return acc
+
+        return b.build(walk(tree))
+
+    def simplify(self) -> Expression:
+        """Return a mathematically equal expression, normalized via sympy.
+
+        Converts to sympy, applies ``sympy.simplify``, and rebuilds the
+        command DAG, so like terms collapse, constants fold, and dead
+        subexpressions drop out. Operators sympy introduces outside this
+        expression's opset (e.g. ``sqrt``, fractional ``Pow``) raise
+        ``ValueError``. Variable identity is by index position: ``num_inputs``
+        and input order are preserved regardless of the temporary names used.
+        """
+        names = [f"x{i}" for i in range(self.num_inputs)]
+        simplified = sp.simplify(self.to_sympy(names))
+        return Expression.from_sympy(simplified, names, self.opset)
 
 
 class ExpressionBuilder:
