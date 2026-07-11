@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from typing import Callable
 
-from scoring import complexity, r2
+from symbolic.scoring import complexity, r2
 from symbolic import Expression, OperatorSet
 from symbolic.expression import ExpressionBuilder
 
