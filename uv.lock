@@ -13,7 +13,6 @@ resolution-markers = [
 [manifest]
 members = [
     "baselines",
-    "native-constants",
     "srbench",
     "symbolic",
     "symlab",
@@ -128,17 +127,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/e8/ac/66ed1fc6e38a0c0f3
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f4/4e/afc8c31605cb8be1d3bb4438c4d979daa104dab6306cd2b87abe9c3a7299/narwhals-2.23.0-py3-none-any.whl", hash = "sha256:769e7b9ab102c93d8fa019f6b4cd1a657909b04a20bf6210e5a35aae06814ae9", size = 458938, upload-time = "2026-07-01T11:21:51.677Z" },
 ]
-
-[[package]]
-name = "native-constants"
-version = "0.1.0"
-source = { editable = "experiments/native-constants" }
-dependencies = [
-    { name = "symbolic" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "symbolic", editable = "libs/symbolic" }]
 
 [[package]]
 name = "numpy"

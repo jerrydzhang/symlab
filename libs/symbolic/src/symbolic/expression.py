@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import TYPE_CHECKING, Callable, Dict, Tuple
-from .bridge import from_sympy as _from_sympy, to_sympy as _to_sympy
 
 import numpy as np
 import numpy.typing as npt
@@ -69,16 +68,6 @@ class Kind(Enum):
 class Ref:
     kind: Kind
     seq: int
-
-
-@dataclass(frozen=True)
-class ScoreResult:
-    """Standard symbolic-regression metrics for an ``Expression`` on data."""
-
-    r2: float
-    mse: float
-    mae: float
-    complexity: int
 
 
 @dataclass
@@ -148,23 +137,6 @@ class Expression:
 
         return memory[self.output_index]
 
-    def score(self, X: np.ndarray, y: np.ndarray) -> ScoreResult:
-        """Compute standard SR metrics for this expression on data.
-
-        ``X`` is ``(num_samples, num_inputs)``; ``y`` is ``(num_samples,)``.
-        R² uses the population variance of ``y`` (guarded to ``1e-9`` when
-        constant); complexity is the total DAG node count.
-        """
-        y_pred = self.evaluate(X)
-        residual = y - y_pred
-        mse = float(np.mean(residual**2))
-        mae = float(np.mean(np.abs(residual)))
-        var_y = float(np.var(y))
-        denom = var_y if var_y != 0.0 else 1e-9
-        r2 = float(1.0 - mse / denom)
-        complexity = len(self.commands) + len(self.constants) + self.num_inputs
-        return ScoreResult(r2=r2, mse=mse, mae=mae, complexity=complexity)
-
     def fit(self, X: np.ndarray, y: np.ndarray) -> Expression:
         """Fit this expression's constants to data via nonlinear least-squares.
 
@@ -207,12 +179,14 @@ class Expression:
 
     def to_sympy(self, feature_names: list[str]) -> sp.Expr:
         """Render this expression as a sympy ``Expr`` over named variables."""
+        from .bridge import to_sympy as _to_sympy
 
         return _to_sympy(self, feature_names)
 
     @classmethod
     def from_sympy(cls, source, feature_names, opset=None) -> Expression:
         """Build an ``Expression`` from a sympy expression or model string."""
+        from .bridge import from_sympy as _from_sympy
 
         return _from_sympy(source, feature_names, opset)
 
