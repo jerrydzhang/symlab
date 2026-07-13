@@ -10,7 +10,7 @@ dependencies = [
 package = false
 
 [tool.uv.workspace]
-members = ["libs/*", "experiments/*"]
+members = ["libs/*", "models/*", "experiments/*"]
 
 [tool.uv.sources]
 symbolic = { workspace = true }

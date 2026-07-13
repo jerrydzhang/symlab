@@ -1,0 +1,20 @@
+[project]
+name = "random-bfgs"
+version = "0.1.0"
+description = "Dumbest SR baseline: random skeleton + BFGS constant fitting."
+requires-python = ">=3.13"
+dependencies = [
+    "numpy",
+    "scipy",
+    "symbolic",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/random_bfgs"]
+
+[tool.uv.sources]
+symbolic = { workspace = true }
