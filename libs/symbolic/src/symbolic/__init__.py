@@ -6,6 +6,7 @@ CAS interop (``to_sympy`` / ``from_sympy`` / ``simplify``) lives directly on
 """
 
 from .expression import Expression, OperatorSet  # noqa: F401
+from .model import SRModel  # noqa: F401
 from .pipeline import (  # noqa: F401
     Evaluated,
     MantissaExponentConstants,
@@ -28,6 +29,7 @@ __all__ = [
     "Pipeline",
     "Populated",
     "RandomBinaryTree",
+    "SRModel",
     "Simplify",
     "Skeleton",
     "Stage",
