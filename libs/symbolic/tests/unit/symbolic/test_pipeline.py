@@ -170,7 +170,7 @@ def _evaluated_with(y: np.ndarray) -> Evaluated:
     b = ExpressionBuilder(_opset(), 1)
     expr = b.build(b.apply("sin", b.input(0)))
     X = np.zeros((len(y), 1))
-    return Evaluated(expr, X, np.asarray(y, dtype=np.float64))
+    return Evaluated(_opset(), expr, X, np.asarray(y, dtype=np.float64))
 
 
 class TestIsValid:

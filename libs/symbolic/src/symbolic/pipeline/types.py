@@ -41,6 +41,7 @@ class Populated:
 class Evaluated:
     """Expression plus sampled ``(X, y)`` data — fully ready for a model."""
 
+    opset: OperatorSet
     expression: Expression
     X: np.ndarray
     y: np.ndarray

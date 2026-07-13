@@ -209,7 +209,7 @@ class UniformSamplePoints:
     def __call__(self, input: Populated) -> Evaluated:
         X = self.rng.uniform(self.lo, self.hi, size=(self.n, input.num_inputs))
         y = input.expression.evaluate(X)
-        return Evaluated(expression=input.expression, X=X, y=y)
+        return Evaluated(opset=input.opset, expression=input.expression, X=X, y=y)
 
 
 def is_valid(overflow_threshold: float = 5e4) -> Callable[[Evaluated], bool]:
