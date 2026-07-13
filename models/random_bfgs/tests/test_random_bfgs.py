@@ -18,7 +18,8 @@ from symbolic import (
 from symbolic.expression import ExpressionBuilder
 
 # Random constant search routinely overflows intermediate values (e.g. exp of a
-# large sampled constant); that is expected and handled by the model, not a fault.
+# large sampled constant). The model scores those tries badly rather than
+# discarding them, so overflow is expected behavior here, not a fault.
 pytestmark = pytest.mark.filterwarnings("ignore::RuntimeWarning")
 
 
@@ -94,3 +95,56 @@ class TestResultsAreValid:
     def test_empty_batch_returns_empty_list(self):
         model = RandomBFGSModel(n_tries=4, rng=np.random.default_rng(1))
         assert model.fit([], _opset()) == []
+
+
+class TestNumericallyBadTriesAreScored:
+    """Overflowing tries are scored (terribly), never skipped.
+
+    A structurally valid skeleton whose ``exp(constant)`` overflows is a bad
+    try, not an invalid one: its unfitted expression is scored so the terrible
+    r2 competes with the other tries. The model must still return a real
+    expression in this regime, never ``None``.
+    """
+
+    def test_returns_expression_with_overflow_prone_opset(self):
+        # max_ops=5 with exp in the default opset routinely produces trees
+        # whose exp of a large sampled constant overflows; the model must
+        # still return evaluable expressions for every problem.
+        problems = _pipeline_problems(n=4, seed=31)
+        model = RandomBFGSModel(max_ops=5, n_tries=50, rng=np.random.default_rng(2))
+        results = model.fit(problems, _opset())
+        assert len(results) == len(problems)
+        for (X, _y), r in zip(problems, results, strict=True):
+            assert isinstance(r, Expression)
+            out = r.evaluate(X)
+            assert out.shape == (X.shape[0],)
+
+    def test_fit_failure_is_scored_not_skipped(self, monkeypatch):
+        # Force every fit() to raise, simulating universal overflow, and
+        # confirm r2 is still invoked for every try (scored, not skipped)
+        # and that the result is the unfitted expression, never None.
+        import random_bfgs.model as model_mod
+
+        problems = _pipeline_problems(n=2, seed=37)
+        n_tries = 6
+        calls = {"r2": 0}
+        real_r2 = model_mod.r2
+
+        def fake_fit(self, X, y):
+            raise ValueError("Residuals are not finite")
+
+        def counting_r2(expression, X, y):
+            calls["r2"] += 1
+            return real_r2(expression, X, y)
+
+        monkeypatch.setattr(model_mod.Expression, "fit", fake_fit)
+        monkeypatch.setattr(model_mod, "r2", counting_r2)
+
+        model = RandomBFGSModel(max_ops=4, n_tries=n_tries, rng=np.random.default_rng(0))
+        results = model.fit(problems, _opset())
+
+        # Every try was scored (not skipped): r2 called once per try per problem.
+        assert calls["r2"] == len(problems) * n_tries
+        # The fallback is the unfitted expression: a real Expression, never None.
+        for r in results:
+            assert isinstance(r, Expression)

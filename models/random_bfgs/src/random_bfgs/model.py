@@ -21,12 +21,14 @@ class RandomBFGSModel:
     Levenberg-Marquardt least-squares. Returns the best-fitting expression.
 
     Skeletons are structurally valid by construction, so the output is always a
-    real (if poor) expression. A try is only discarded when its random initial
-    constants make the least-squares residual non-finite (e.g. ``exp`` of a huge
-    constant); such numerically invalid tries are skipped rather than crashing.
-    With any reasonable ``n_tries`` at least one try succeeds, so the result is
-    effectively never ``None`` in practice — ``None`` is returned only if every
-    try fails numerically.
+    real (if poor) expression. A try is *never* discarded: when the random
+    initial constants overflow during least-squares (e.g. ``exp`` of a huge
+    value) the fit raises, and the unfitted expression is scored instead — its
+    terrible ``r2`` is the signal that this try was bad, not a reason to drop
+    it. A non-finite score (``nan``/``inf`` from evaluation overflow) is mapped
+    to ``-inf`` so it never wins but still competes. The result is effectively
+    never ``None``; ``None`` is returned only if no try can construct an
+    expression at all, which cannot happen for structurally valid skeletons.
 
     Parameters
     ----------
@@ -61,30 +63,46 @@ class RandomBFGSModel:
             n_inputs = X.shape[1]
             best_expr: Expression | None = None
             best_r2 = -np.inf
+            last_expr: Expression | None = None
             for _ in range(self.n_tries):
-                # Extreme sampled constants can overflow during optimization
-                # (e.g. exp of a large value); that is expected noise from random
-                # search, so suppress it and skip any try that fails outright.
+                tree_gen = RandomBinaryTree(
+                    opset,
+                    max_ops=self.max_ops,
+                    num_vars=(n_inputs, n_inputs),
+                    rng=self.rng,
+                )
+                skeleton = tree_gen(None)
+
+                const_gen = MantissaExponentConstants(rng=self.rng)
+                populated = const_gen(skeleton)
+                expr = populated.expression
+                last_expr = expr
+
+                # Fit constants via least-squares. When the random initial
+                # constants overflow (e.g. exp of a huge value), least_squares
+                # raises because the residuals are non-finite. That is a
+                # numerically bad but structurally valid try: score the
+                # unfitted expression instead of discarding it, so its terrible
+                # r2 competes with the other tries rather than vanishing.
+                try:
+                    candidate = expr.fit(X, y)
+                except (ValueError, FloatingPointError, ArithmeticError):
+                    candidate = expr
+
+                # Overflow during evaluation can make r2 nan/inf; suppress the
+                # warning and coerce non-finite scores to -inf so the try never
+                # wins over a finite-scored one but is still counted.
                 with np.errstate(all="ignore"):
-                    try:
-                        tree_gen = RandomBinaryTree(
-                            opset,
-                            max_ops=self.max_ops,
-                            num_vars=(n_inputs, n_inputs),
-                            rng=self.rng,
-                        )
-                        skeleton = tree_gen(None)
+                    score = r2(candidate, X, y)
+                if not np.isfinite(score):
+                    score = -np.inf
 
-                        const_gen = MantissaExponentConstants(rng=self.rng)
-                        populated = const_gen(skeleton)
-
-                        fitted = populated.expression.fit(X, y)
-                        score = r2(fitted, X, y)
-                    except (ValueError, FloatingPointError, ArithmeticError):
-                        continue
                 if score > best_r2:
                     best_r2 = score
-                    best_expr = fitted
+                    best_expr = candidate
 
-            results.append(best_expr)
+            # Skeletons are always structurally valid, so last_expr is set
+            # whenever any try ran. Fall back to it only if every try scored
+            # -inf (all overflowed) and none beat the initial -inf.
+            results.append(best_expr if best_expr is not None else last_expr)
         return results
