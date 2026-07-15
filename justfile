@@ -1,7 +1,3 @@
-# symlab task runner. Recipes run from the repo root.
-# Run `just` with no args to list recipes.
-
-# default: list available recipes
 default:
     @just --list
 
@@ -10,14 +6,14 @@ default:
 update-srbench sha="":
     libs/srbench/refresh.sh {{sha}}
 
-# create / update the virtualenv across all workspace packages
 sync:
     uv sync --all-packages
 
-# run the test suite
 test:
     uv run pytest
 
-# lint with ruff
 lint:
     uv run ruff check
+
+marimo:
+    marimo edit --watch --headless --host 0.0.0.0
