@@ -1,5 +1,3 @@
-"""Random skeleton + BFGS constant fitting — the simplest SR baseline."""
-
 from __future__ import annotations
 
 import numpy as np
@@ -14,21 +12,11 @@ from symbolic import (
 
 
 class RandomBFGSModel:
-    """Dumbest SR: random search over tree structure + least-squares over constants.
+    """random search over tree structure + least-squares over constants.
 
     For each problem, generates ``n_tries`` random expression skeletons, fills
     their constants with random magnitudes, then fits constants to the data via
     Levenberg-Marquardt least-squares. Returns the best-fitting expression.
-
-    Skeletons are structurally valid by construction, so the output is always a
-    real (if poor) expression. A try is *never* discarded: when the random
-    initial constants overflow during least-squares (e.g. ``exp`` of a huge
-    value) the fit raises, and the unfitted expression is scored instead — its
-    terrible ``r2`` is the signal that this try was bad, not a reason to drop
-    it. A non-finite score (``nan``/``inf`` from evaluation overflow) is mapped
-    to ``-inf`` so it never wins but still competes. The result is effectively
-    never ``None``; ``None`` is returned only if no try can construct an
-    expression at all, which cannot happen for structurally valid skeletons.
 
     Parameters
     ----------
@@ -57,9 +45,6 @@ class RandomBFGSModel:
     ) -> list[Expression | None]:
         results: list[Expression | None] = []
         for X, y in problems:
-            # Skeleton arity must match the data's input count: Expression.evaluate
-            # sizes its working memory from X.shape[1], so a mismatched skeleton
-            # would index out of bounds. Pin num_vars to the problem dimension.
             n_inputs = X.shape[1]
             best_expr: Expression | None = None
             best_r2 = -np.inf
@@ -78,20 +63,13 @@ class RandomBFGSModel:
                 expr = populated.expression
                 last_expr = expr
 
-                # Fit constants via least-squares. When the random initial
-                # constants overflow (e.g. exp of a huge value), least_squares
-                # raises because the residuals are non-finite. That is a
-                # numerically bad but structurally valid try: score the
-                # unfitted expression instead of discarding it, so its terrible
-                # r2 competes with the other tries rather than vanishing.
                 try:
                     candidate = expr.fit(X, y)
+                # if expression fitting results in an exception use the unfit expression
                 except (ValueError, FloatingPointError, ArithmeticError):
                     candidate = expr
 
-                # Overflow during evaluation can make r2 nan/inf; suppress the
-                # warning and coerce non-finite scores to -inf so the try never
-                # wins over a finite-scored one but is still counted.
+                # if scoring fails score becomes -inf
                 with np.errstate(all="ignore"):
                     score = r2(candidate, X, y)
                 if not np.isfinite(score):
@@ -101,8 +79,6 @@ class RandomBFGSModel:
                     best_r2 = score
                     best_expr = candidate
 
-            # Skeletons are always structurally valid, so last_expr is set
-            # whenever any try ran. Fall back to it only if every try scored
-            # -inf (all overflowed) and none beat the initial -inf.
+            # if all tries failed, return the last expression (unfit) instead of None
             results.append(best_expr if best_expr is not None else last_expr)
         return results

@@ -1,7 +1,7 @@
 [project]
 name = "random-bfgs"
 version = "0.1.0"
-description = "Dumbest SR baseline: random skeleton + BFGS constant fitting."
+description = "random skeleton + BFGS constant fitting."
 requires-python = ">=3.13"
 dependencies = [
     "numpy",

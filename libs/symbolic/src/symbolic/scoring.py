@@ -1,11 +1,3 @@
-"""Standalone scorer functions.
-
-A scorer is a plain callable ``(expression, X, y) -> float`` that measures some
-quality of an expression against data. Scorers are free functions — they are
-not methods on :class:`~symbolic.Expression`, because scoring is an extrinsic
-measurement, not an intrinsic property of the expression.
-"""
-
 from __future__ import annotations
 
 import numpy as np
