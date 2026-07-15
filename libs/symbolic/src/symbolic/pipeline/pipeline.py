@@ -1,11 +1,3 @@
-"""Fluent, type-safe pipeline builder.
-
-A :class:`Pipeline` chains :class:`Stage` callables. Each ``.then(stage)``
-call is verified by ``ty`` to match the stage's declared input type against
-the pipeline's current output type — a wrong ordering (e.g. sampling points
-before filling constants) is a static error, not a runtime surprise.
-"""
-
 from __future__ import annotations
 
 from typing import Any, Generic, Iterator, Protocol, TypeVar, Callable
@@ -22,13 +14,7 @@ class Stage(Protocol, Generic[T1, T2]):
 
 
 class Pipeline(Generic[T2]):
-    """Composable pipeline over a type progression.
-
-    The first stage seeds the stream (its input is ``None``); each subsequent
-    ``.then()`` extends the chain and refines the output type, and ``.filter()``
-    drops entries that fail a predicate. ``.iter(n)`` lazily pulls up to ``n``
-    valid entries on demand.
-    """
+    """Composable, type-safe pipeline over a type progression."""
 
     _stages: list[Any]
 

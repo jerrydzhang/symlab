@@ -1,10 +1,3 @@
-"""Pipeline primitives: tree generation, constant filling, sampling, validation.
-
-``RandomBinaryTree`` (``None -> Skeleton``) follows the Lample-Charton uniform
-unary-binary tree model; the remaining stages refine toward an ``Evaluated``
-entry ready for a model.
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -20,11 +13,7 @@ from .types import Evaluated, Populated, Skeleton
 
 @dataclass
 class _Node:
-    """Mutable recursive tree representation during skeleton generation.
-
-    Leaves carry ``op is None``; ``const``/``var`` are assigned in a labelling
-    pass after the structure is final.
-    """
+    """Mutable recursive tree node during skeleton generation (leaves: ``op is None``)."""
 
     op: str | None
     kids: list["_Node"]
@@ -33,25 +22,21 @@ class _Node:
 
 
 class RandomBinaryTree:
-    """Generate uniform random unary-binary expression trees.
+    """Generate uniform random unary-binary expression trees (Lample-Charton model).
 
-    Produces a :class:`Skeleton` whose constant slots are placeholders (``0.0``)
-    awaiting the next stage. Operator count, input arity and leaf labelling are
-    all sampled per call.
+    Returns a :class:`Skeleton` with placeholder (``0.0``) constants.
 
     Parameters
     ----------
-    opset:
-        Operators available to internal nodes (arity is read from the opset).
     max_ops:
-        Upper bound (inclusive) on the number of operator nodes.
+        Upper bound (inclusive) on operator nodes per tree.
     num_vars:
         Inclusive ``(lo, hi)`` range for the number of input variables.
     p_constant:
-        Independent probability a given leaf is a placeholder constant rather
-        than a variable. At least one constant per tree is guaranteed.
+        Per-leaf probability of being a constant; at least one per tree is
+        guaranteed.
     rng:
-        Seeded generator for reproducibility; defaults to a fresh one.
+        Seeded generator; defaults to a fresh one.
     """
 
     def __init__(
@@ -88,8 +73,6 @@ class RandomBinaryTree:
         return names[int(self.rng.integers(0, len(names)))]
 
     def _grow(self, ops: int) -> _Node:
-        # ops == 0 -> leaf. Otherwise pick an operator and recurse, reserving
-        # one op for this node and splitting the remainder across its children.
         if ops == 0:
             return _Node(op=None, kids=[])
 
@@ -147,11 +130,7 @@ class RandomBinaryTree:
 
 
 class MantissaExponentConstants:
-    """Replace placeholder constants with ``sign * mantissa * 10**exponent``.
-
-    The command DAG and structure are preserved verbatim; only the constant
-    array is replaced with freshly sampled magnitudes.
-    """
+    """Replace placeholder constants with ``sign * mantissa * 10**exponent`` values."""
 
     def __init__(
         self,
@@ -228,12 +207,9 @@ def is_valid(overflow_threshold: float = 5e4) -> Callable[[Evaluated], bool]:
 
 
 class Simplify:
-    """Canonicalize an expression's structure via sympy.simplify.
+    """Canonicalize structure via sympy.simplify; destructive to tree topology.
 
-    Collapses like terms, folds constants, drops dead subexpressions.
-    Destructive to tree topology — use when you care about the function,
-    not the specific tree structure.  Operators sympy introduces outside
-    the expression's opset raise ValueError (propagates, does not swallow).
+    Operators sympy introduces outside the opset raise ``ValueError``.
     """
 
     def __call__(self, input: Populated) -> Populated:

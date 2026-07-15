@@ -1,5 +1,3 @@
-"""Model protocol: the interface every symbolic-regression model implements."""
-
 from __future__ import annotations
 
 from typing import Protocol
@@ -10,12 +8,10 @@ from symbolic import Expression, OperatorSet
 
 
 class SRModel(Protocol):
-    """A symbolic regression model that solves a batch of problems.
+    """Symbolic-regression model: fit a batch of ``(X, y)`` problems.
 
-    Each problem is a ``(X, y)`` tuple. The model returns one result per
-    problem: an :class:`~symbolic.Expression` if it produced a valid equation,
-    or ``None`` if the output was structurally invalid (e.g. a decoder
-    produced an impossible token sequence).
+    Returns one :class:`~symbolic.Expression` per problem, or ``None`` if the
+    result is structurally invalid.
     """
 
     def fit(

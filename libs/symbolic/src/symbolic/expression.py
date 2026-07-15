@@ -25,11 +25,7 @@ _SYMPY_OPS: dict[str, Callable[..., sp.Expr]] = {
 
 
 def _default_feature_names(tree: sp.Expr) -> list[str]:
-    """Infer ``x0 .. xn`` from a sympy tree's free symbols.
-
-    ``n`` is one past the largest ``x{int}`` index, so unused middle inputs are
-    preserved. Any symbol not matching ``x{int}`` raises ``ValueError``.
-    """
+    """Infer ``x0 .. xn`` feature names from a sympy tree's free symbols."""
     indices = []
     for s in tree.free_symbols:
         name = str(s)
@@ -139,10 +135,7 @@ class Expression:
         return f"Expression({str(self)})"
 
     def evaluate(self, X: np.ndarray) -> np.ndarray:
-        """Evaluate the expression on ``X`` of shape ``(num_samples, num_inputs)``.
-
-        Returns a ``(num_samples,)`` array of predictions.
-        """
+        """Evaluate on ``X`` ``(num_samples, num_inputs)`` -> ``(num_samples,)`` predictions."""
         num_samples, num_inputs = X.shape
         node_offset = num_inputs + len(self.constants)
         memory = np.empty(
@@ -167,14 +160,10 @@ class Expression:
         return memory[self.output_index]
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> Expression:
-        """Fit this expression's constants to data via nonlinear least-squares.
+        """Fit constants to ``(X, y)`` via nonlinear least-squares.
 
-        Returns a new ``Expression`` with optimized constants; the original is
-        not modified. Optimization starts from this expression's current
-        constant values and uses Levenberg-Marquardt with a finite-difference
-        Jacobian (computed by scipy).
-
-        ``X`` is ``(num_samples, num_inputs)``; ``y`` is ``(num_samples,)``.
+        Returns a new ``Expression`` (original unchanged). ``X`` is
+        ``(num_samples, num_inputs)``; ``y`` is ``(num_samples,)``.
         """
 
         def residuals(c: np.ndarray) -> np.ndarray:
@@ -207,11 +196,10 @@ class Expression:
         )
 
     def to_sympy(self, feature_names: list[str] | None = None) -> sp.Expr:
-        """Render this expression as a sympy ``Expr`` over named variables.
+        """Render as a sympy ``Expr``.
 
-        ``feature_names`` defaults to ``x0 .. x{num_inputs-1}``. Extra names
-        beyond ``num_inputs`` are accepted (the tree only references its first
-        ``num_inputs`` inputs); fewer raises ``ValueError``.
+        ``feature_names`` defaults to ``x0 .. x{num_inputs-1}``; too few raise
+        ``ValueError``.
         """
         if feature_names is None:
             feature_names = [f"x{i}" for i in range(self.num_inputs)]
@@ -254,14 +242,10 @@ class Expression:
         feature_names: list[str] | None = None,
         opset: OperatorSet | None = None,
     ) -> Expression:
-        """Build an ``Expression`` from a sympy expression or model string.
+        """Build an ``Expression`` from a sympy expr or string.
 
-        ``feature_names`` fixes the variable order and the result's
-        ``num_inputs``; the expression may reference any subset of them. It
-        defaults to ``x0 .. xn`` inferred from the free symbols in ``source``
-        (which must all follow the ``x{int}`` convention, else pass
-        ``feature_names`` explicitly). Operators outside ``opset`` raise
-        ``ValueError``.
+        ``feature_names`` fixes ``num_inputs`` (defaults to ``x0..xn`` inferred
+        from free symbols). Operators outside ``opset`` raise ``ValueError``.
         """
         opset = opset or OperatorSet.default()
         if feature_names is None:
@@ -355,12 +339,8 @@ class Expression:
     def simplify(self) -> Expression:
         """Return a mathematically equal expression, normalized via sympy.
 
-        Converts to sympy, applies ``sympy.simplify``, and rebuilds the
-        command DAG, so like terms collapse, constants fold, and dead
-        subexpressions drop out. Operators sympy introduces outside this
-        expression's opset (e.g. ``sqrt``, fractional ``Pow``) raise
-        ``ValueError``. Variable identity is by index position: ``num_inputs``
-        and input order are preserved regardless of the temporary names used.
+        Operators introduced outside this opset raise ``ValueError``; input
+        order is preserved.
         """
         names = [f"x{i}" for i in range(self.num_inputs)]
         simplified = sp.simplify(self.to_sympy(names))

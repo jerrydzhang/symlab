@@ -1,10 +1,3 @@
-"""Data types that flow through the generation pipeline.
-
-The pipeline progresses ``Skeleton -> Populated -> Evaluated``. Each stage
-accepts the previous type and returns the next; the :class:`~pipeline.pipeline.Pipeline`
-builder enforces this progression statically via ``ty``.
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -16,11 +9,7 @@ from symbolic import Expression, OperatorSet
 
 @dataclass
 class Skeleton:
-    """Tree structure with placeholder constant slots — no real values yet.
-
-    ``expression`` carries the command DAG with all constants set to ``0.0``;
-    downstream stages fill those slots with sampled magnitudes.
-    """
+    """Tree structure with placeholder (``0.0``) constants awaiting a fill stage."""
 
     opset: OperatorSet
     num_inputs: int

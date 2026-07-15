@@ -12,18 +12,14 @@ from symbolic import (
 
 
 class RandomBFGSModel:
-    """random search over tree structure + least-squares over constants.
-
-    For each problem, generates ``n_tries`` random expression skeletons, fills
-    their constants with random magnitudes, then fits constants to the data via
-    Levenberg-Marquardt least-squares. Returns the best-fitting expression.
+    """Random tree search + least-squares constant fitting.
 
     Parameters
     ----------
     max_ops:
         Upper bound on operator nodes per random tree.
     n_tries:
-        Number of random trees to try per problem.
+        Number of random trees tried per problem.
     rng:
         Seeded generator for reproducibility.
     """
