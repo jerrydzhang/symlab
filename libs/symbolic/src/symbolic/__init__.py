@@ -12,7 +12,7 @@ from .pipeline import (  # noqa: F401
     UniformSamplePoints,
     is_valid,
 )
-from .evaluation import add_noise, split  # noqa: F401
+from .transforms import add_noise, split  # noqa: F401
 from .scoring import complexity, r2  # noqa: F401
 
 __all__ = [

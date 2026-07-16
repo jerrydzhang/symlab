@@ -18,8 +18,6 @@ All structural claims below were verified against the current folding
 implementation; numpy is the only numeric dependency.
 """
 
-from __future__ import annotations
-
 import numpy as np
 import pytest
 import sympy as sp

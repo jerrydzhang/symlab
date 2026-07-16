@@ -4,8 +4,6 @@ Covers: skeleton generation, constant filling, sample shapes, the full
 chain, the ``is_valid`` filter, and the type progression enforced by ``ty``.
 """
 
-from __future__ import annotations
-
 import numpy as np
 import pytest
 

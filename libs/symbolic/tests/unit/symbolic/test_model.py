@@ -1,7 +1,5 @@
 """Tests for the :class:`~symbolic.SRModel` protocol."""
 
-from __future__ import annotations
-
 import numpy as np
 
 from symbolic import Expression, OperatorSet, SRModel

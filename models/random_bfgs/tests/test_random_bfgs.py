@@ -1,7 +1,5 @@
 """Tests for :class:`random_bfgs.RandomBFGSModel`."""
 
-from __future__ import annotations
-
 import numpy as np
 import pytest
 

@@ -17,8 +17,6 @@ Two entry points:
   recovery flags back.
 """
 
-from __future__ import annotations
-
 import json
 import shutil
 import sys

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Callable, Dict, Tuple, cast
@@ -159,7 +157,7 @@ class Expression:
 
         return memory[self.output_index]
 
-    def fit(self, X: np.ndarray, y: np.ndarray) -> Expression:
+    def fit(self, X: np.ndarray, y: np.ndarray) -> "Expression":
         """Fit constants to ``(X, y)`` via nonlinear least-squares.
 
         Returns a new ``Expression`` (original unchanged). ``X`` is
@@ -241,7 +239,7 @@ class Expression:
         source: str | sp.Expr,
         feature_names: list[str] | None = None,
         opset: OperatorSet | None = None,
-    ) -> Expression:
+    ) -> "Expression":
         """Build an ``Expression`` from a sympy expr or string.
 
         ``feature_names`` fixes ``num_inputs`` (defaults to ``x0..xn`` inferred
@@ -336,7 +334,7 @@ class Expression:
 
         return b.build(walk(tree))
 
-    def simplify(self) -> Expression:
+    def simplify(self) -> "Expression":
         """Return a mathematically equal expression, normalized via sympy.
 
         Operators introduced outside this opset raise ``ValueError``; input
