@@ -65,7 +65,7 @@ class RandomBFGSModel:
 
                 # if scoring fails score becomes -inf
                 with np.errstate(all="ignore"):
-                    score = r2(candidate, X, y)
+                    score = r2([candidate], [X], [y])[0]
                 if not np.isfinite(score):
                     score = -np.inf
 

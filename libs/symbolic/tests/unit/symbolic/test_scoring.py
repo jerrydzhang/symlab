@@ -27,7 +27,7 @@ class TestR2:
         rng = np.random.default_rng(0)
         X = rng.uniform(-10, 10, size=(64, 2))
         y = expr.evaluate(X)
-        assert r2(expr, X, y) == pytest.approx(1.0)
+        assert r2([expr], [X], [y])[0] == pytest.approx(1.0)
 
     def test_is_negative_when_worse_than_mean(self):
         # a constant 1e6 predictor is far below any reasonable mean baseline.
@@ -39,7 +39,7 @@ class TestR2:
         rng = np.random.default_rng(1)
         X = rng.uniform(-1, 1, size=(32, 2))
         y = rng.uniform(-1, 1, size=32)
-        assert r2(expr, X, y) < 0.0
+        assert r2([expr], [X], [y])[0] < 0.0
 
     def test_matches_hand_computed_value(self):
         # constant 2.0 vs y=[1,2,4]: mse=5/3, var(y)=14/9 -> r2 = -1/14.
@@ -50,7 +50,7 @@ class TestR2:
         expr = _build(fn)
         y = np.array([1.0, 2.0, 4.0])
         X = np.zeros((3, 2))  # X unused by a constant expression
-        assert r2(expr, X, y) == pytest.approx(-1.0 / 14.0)
+        assert r2([expr], [X], [y])[0] == pytest.approx(-1.0 / 14.0)
 
     def test_constant_target_does_not_divide_by_zero(self):
         # var(y) == 0 is guarded -> returns a finite float, not nan/inf.
@@ -61,7 +61,7 @@ class TestR2:
         expr = _build(fn)
         y = np.full(10, 5.0)
         X = np.zeros((10, 2))
-        result = r2(expr, X, y)
+        result = r2([expr], [X], [y])[0]
         assert np.isfinite(result)
 
 
@@ -75,7 +75,7 @@ class TestComplexity:
             return b.build(out)
 
         expr = _build(fn)
-        assert complexity(expr, np.zeros((1, 2)), np.zeros(1)) == 5.0
+        assert complexity([expr], [np.zeros((1, 2))], [np.zeros(1)])[0] == 5.0
 
     def test_trivial_input_only_expression(self):
         # no commands, no constants -> complexity == num_inputs
@@ -83,7 +83,7 @@ class TestComplexity:
             return b.build(b.input(0))
 
         expr = _build(fn)
-        assert complexity(expr, np.zeros((1, 2)), np.zeros(1)) == 2.0
+        assert complexity([expr], [np.zeros((1, 2))], [np.zeros(1)])[0] == 2.0
 
     def test_ignores_X_and_y(self):
         # same expression, wildly different data -> identical complexity.
@@ -92,8 +92,8 @@ class TestComplexity:
             return b.build(b.apply("add", x0, x1))
 
         expr = _build(fn)
-        a = complexity(expr, np.zeros((1, 2)), np.zeros(1))
-        b = complexity(expr, np.ones((999, 2)), np.full(999, 1e9))
+        a = complexity([expr], [np.zeros((1, 2))], [np.zeros(1)])[0]
+        b = complexity([expr], [np.ones((999, 2))], [np.full(999, 1e9)])[0]
         assert a == b
 
 
@@ -108,5 +108,5 @@ class TestReturnType:
         X = rng.uniform(-1, 1, size=(16, 2))
         y = rng.uniform(-1, 1, size=16)
 
-        assert isinstance(r2(expr, X, y), float)
-        assert isinstance(complexity(expr, X, y), float)
+        assert isinstance(r2([expr], [X], [y])[0], float)
+        assert isinstance(complexity([expr], [X], [y])[0], float)

@@ -69,7 +69,7 @@ class TestFitQuality:
         model = RandomBFGSModel(max_ops=4, n_tries=200, rng=np.random.default_rng(0))
         (result,) = model.fit([(X, y)], _opset())
         assert result is not None
-        assert r2(result, X, y) > 0.95
+        assert r2([result], [X], [y])[0] > 0.95
 
 
 class TestResultsAreValid:
