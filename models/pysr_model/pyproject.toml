@@ -1,0 +1,20 @@
+[project]
+name = "pysr-model"
+version = "0.1.0"
+description = "PySR (SymbolicRegression.jl) adapter implementing SRModel."
+requires-python = ">=3.13"
+dependencies = [
+    "numpy",
+    "symbolic",
+    "pysr",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pysr_model"]
+
+[tool.uv.sources]
+symbolic = { workspace = true }
