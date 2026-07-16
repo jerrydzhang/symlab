@@ -40,14 +40,14 @@ def _pipeline_problems(n: int, seed: int) -> list[tuple[np.ndarray, np.ndarray]]
 class TestFitShape:
     def test_returns_one_expression_per_problem(self):
         problems = _pipeline_problems(n=5, seed=7)
-        model = RandomBFGSModel(n_tries=8, rng=np.random.default_rng(0))
-        results = model.fit(problems, _opset())
+        model = RandomBFGSModel(opset=_opset(), n_tries=8, rng=np.random.default_rng(0))
+        results = model.fit(problems)
         assert len(results) == len(problems)
 
     def test_never_returns_none_on_reasonable_data(self):
         problems = _pipeline_problems(n=4, seed=11)
-        model = RandomBFGSModel(n_tries=20, rng=np.random.default_rng(3))
-        results = model.fit(problems, _opset())
+        model = RandomBFGSModel(opset=_opset(), n_tries=20, rng=np.random.default_rng(3))
+        results = model.fit(problems)
         assert len(results) == len(problems)
         for r in results:
             assert r is not None
@@ -66,8 +66,8 @@ class TestFitQuality:
         from symbolic import r2
 
         X, y = self._target_problem()
-        model = RandomBFGSModel(max_ops=4, n_tries=200, rng=np.random.default_rng(0))
-        (result,) = model.fit([(X, y)], _opset())
+        model = RandomBFGSModel(opset=_opset(), max_ops=4, n_tries=200, rng=np.random.default_rng(0))
+        (result,) = model.fit([(X, y)])
         assert result is not None
         assert r2([result], [X], [y])[0] > 0.95
 
@@ -75,8 +75,8 @@ class TestFitQuality:
 class TestResultsAreValid:
     def test_results_are_expressions_and_evaluable(self):
         problems = _pipeline_problems(n=3, seed=23)
-        model = RandomBFGSModel(n_tries=12, rng=np.random.default_rng(5))
-        results = model.fit(problems, _opset())
+        model = RandomBFGSModel(opset=_opset(), n_tries=12, rng=np.random.default_rng(5))
+        results = model.fit(problems)
         for (X, _y), r in zip(problems, results, strict=True):
             assert isinstance(r, Expression)
             # every result evaluates without error on its problem's X
@@ -85,14 +85,14 @@ class TestResultsAreValid:
 
     def test_single_problem_batch(self):
         problems = _pipeline_problems(n=1, seed=29)
-        model = RandomBFGSModel(n_tries=10, rng=np.random.default_rng(9))
-        results = model.fit(problems, _opset())
+        model = RandomBFGSModel(opset=_opset(), n_tries=10, rng=np.random.default_rng(9))
+        results = model.fit(problems)
         assert len(results) == 1
         assert isinstance(results[0], Expression)
 
     def test_empty_batch_returns_empty_list(self):
-        model = RandomBFGSModel(n_tries=4, rng=np.random.default_rng(1))
-        assert model.fit([], _opset()) == []
+        model = RandomBFGSModel(opset=_opset(), n_tries=4, rng=np.random.default_rng(1))
+        assert model.fit([]) == []
 
 
 class TestNumericallyBadTriesAreScored:
@@ -109,8 +109,8 @@ class TestNumericallyBadTriesAreScored:
         # whose exp of a large sampled constant overflows; the model must
         # still return evaluable expressions for every problem.
         problems = _pipeline_problems(n=4, seed=31)
-        model = RandomBFGSModel(max_ops=5, n_tries=50, rng=np.random.default_rng(2))
-        results = model.fit(problems, _opset())
+        model = RandomBFGSModel(opset=_opset(), max_ops=5, n_tries=50, rng=np.random.default_rng(2))
+        results = model.fit(problems)
         assert len(results) == len(problems)
         for (X, _y), r in zip(problems, results, strict=True):
             assert isinstance(r, Expression)
@@ -138,8 +138,8 @@ class TestNumericallyBadTriesAreScored:
         monkeypatch.setattr(model_mod.Expression, "fit", fake_fit)
         monkeypatch.setattr(model_mod, "r2", counting_r2)
 
-        model = RandomBFGSModel(max_ops=4, n_tries=n_tries, rng=np.random.default_rng(0))
-        results = model.fit(problems, _opset())
+        model = RandomBFGSModel(opset=_opset(), max_ops=4, n_tries=n_tries, rng=np.random.default_rng(0))
+        results = model.fit(problems)
 
         # Every try was scored (not skipped): r2 called once per try per problem.
         assert calls["r2"] == len(problems) * n_tries

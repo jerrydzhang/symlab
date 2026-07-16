@@ -2,7 +2,7 @@ from typing import Protocol
 
 import numpy as np
 
-from symbolic import Expression, OperatorSet
+from symbolic import Expression
 
 
 class SRModel(Protocol):
@@ -14,6 +14,5 @@ class SRModel(Protocol):
 
     def fit(
         self,
-        problems: list[tuple[np.ndarray, np.ndarray]],
-        opset: OperatorSet,
+        problems: list[tuple[np.ndarray, np.ndarray]]
     ) -> list[Expression | None]: ...

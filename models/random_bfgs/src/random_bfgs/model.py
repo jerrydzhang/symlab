@@ -14,6 +14,8 @@ class RandomBFGSModel:
 
     Parameters
     ----------
+    opset:
+        Operator set sampled trees are built from.
     max_ops:
         Upper bound on operator nodes per random tree.
     n_tries:
@@ -24,18 +26,19 @@ class RandomBFGSModel:
 
     def __init__(
         self,
+        opset: OperatorSet,
         max_ops: int = 5,
         n_tries: int = 10,
         rng: np.random.Generator | None = None,
     ) -> None:
+        self.opset = opset
         self.max_ops = max_ops
         self.n_tries = n_tries
         self.rng = rng if rng is not None else np.random.default_rng()
 
     def fit(
         self,
-        problems: list[tuple[np.ndarray, np.ndarray]],
-        opset: OperatorSet,
+        problems: list[tuple[np.ndarray, np.ndarray]]
     ) -> list[Expression | None]:
         results: list[Expression | None] = []
         for X, y in problems:
@@ -45,7 +48,7 @@ class RandomBFGSModel:
             last_expr: Expression | None = None
             for _ in range(self.n_tries):
                 tree_gen = RandomBinaryTree(
-                    opset,
+                    self.opset,
                     max_ops=self.max_ops,
                     num_vars=(n_inputs, n_inputs),
                     rng=self.rng,

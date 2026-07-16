@@ -20,11 +20,9 @@ class _DummyModel:
 
     def fit(
         self,
-        problems: list[tuple[np.ndarray, np.ndarray]],
-        opset: OperatorSet,
+        problems: list[tuple[np.ndarray, np.ndarray]]
     ) -> list[Expression | None]:
         # one result per problem; ignores the data, returns the fixed expr
-        _ = opset
         return [self._expr for _ in problems]
 
 
@@ -41,21 +39,21 @@ class TestSRModelProtocol:
             (np.zeros((4, 1)), np.zeros(4)),
             (np.ones((4, 1)), np.ones(4)),
         ]
-        results = model.fit(problems, OperatorSet.default())
+        results = model.fit(problems)
         assert len(results) == len(problems)
         for r in results:
             assert r is expr
 
     def test_dummy_model_handles_empty_batch(self):
         model: SRModel = _DummyModel(_identity_expr())
-        assert model.fit([], OperatorSet.default()) == []
+        assert model.fit([]) == []
 
     def test_fit_result_is_usable_expression(self):
         expr = _identity_expr()
         model: SRModel = _DummyModel(expr)
         X = np.linspace(-1, 1, 5).reshape(5, 1)
         y = np.zeros(5)
-        (result,) = model.fit([(X, y)], OperatorSet.default())
+        (result,) = model.fit([(X, y)])
         assert result is not None
         # the returned expression evaluates without error on the data
         out = result.evaluate(X)
