@@ -59,6 +59,7 @@ class PySRModel:
             random_state=seed,
             verbosity=0,
             model_selection="accuracy",
+            warm_start=True,
         )
 
     def fit(
