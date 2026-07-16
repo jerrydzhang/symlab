@@ -2,7 +2,7 @@ from typing import Tuple
 
 import numpy as np
 
-from symbolic.pipeline.types import Evaluated
+from symbolic.generation.types import Evaluated
 
 
 def split(

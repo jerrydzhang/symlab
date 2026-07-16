@@ -1,6 +1,6 @@
 from .expression import Expression, OperatorSet  # noqa: F401
 from .model import SRModel  # noqa: F401
-from .pipeline import (  # noqa: F401
+from .generation import (  # noqa: F401
     Evaluated,
     MantissaExponentConstants,
     Pipeline,

@@ -8,7 +8,7 @@ app = marimo.App(width="medium")
 def _():
     from symbolic import OperatorSet
     from symbolic.scoring import r2, complexity
-    from symbolic.pipeline import (
+    from symbolic.generation import (
         Pipeline,
         RandomBinaryTree,
         MantissaExponentConstants,

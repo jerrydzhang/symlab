@@ -7,7 +7,7 @@ chain, the ``is_valid`` filter, and the type progression enforced by ``ty``.
 import numpy as np
 import pytest
 
-from symbolic.pipeline import (
+from symbolic.generation import (
     Evaluated,
     MantissaExponentConstants,
     Pipeline,
