@@ -12,6 +12,7 @@ from .pipeline import (  # noqa: F401
     UniformSamplePoints,
     is_valid,
 )
+from .evaluation import add_noise, split  # noqa: F401
 from .scoring import complexity, r2  # noqa: F401
 
 __all__ = [
@@ -27,9 +28,11 @@ __all__ = [
     "Skeleton",
     "Stage",
     "UniformSamplePoints",
+    "add_noise",
     "complexity",
     "is_valid",
     "r2",
+    "split",
 ]
 
 __version__ = "0.1.0"
