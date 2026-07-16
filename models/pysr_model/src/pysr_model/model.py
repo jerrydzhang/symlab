@@ -48,18 +48,23 @@ class PySRModel:
                 raise ValueError(f"no PySR mapping for operator {name!r}")
             (binary if arity == 2 else unary).append(pysr_name)
 
+        self._binary = binary
+        self._unary = unary
+        self._niterations = niterations
+        self._maxsize = maxsize
+
+    def _make_estimator(self) -> PySRRegressor:
         seed = int(self.rng.integers(0, 2**31))
-        self._est = PySRRegressor(
-            binary_operators=binary,
-            unary_operators=unary,
-            niterations=niterations,
-            maxsize=maxsize,
+        return PySRRegressor(
+            binary_operators=self._binary,
+            unary_operators=self._unary,
+            niterations=self._niterations,
+            maxsize=self._maxsize,
             deterministic=True,
             parallelism="serial",
             random_state=seed,
             verbosity=0,
             model_selection="accuracy",
-            warm_start=True,
         )
 
     def fit(
@@ -71,8 +76,9 @@ class PySRModel:
             n_inputs = X.shape[1]
             feature_names = [f"x{i}" for i in range(n_inputs)]
             try:
-                self._est.fit(X, y, variable_names=feature_names)
-                eq_str = str(self._est.sympy())
+                est = self._make_estimator()
+                est.fit(X, y, variable_names=feature_names)
+                eq_str = str(est.sympy())
                 expr = Expression.from_sympy(
                     eq_str,
                     feature_names=feature_names,

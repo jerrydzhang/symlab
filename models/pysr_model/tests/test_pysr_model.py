@@ -36,11 +36,8 @@ def _pipeline_problems(n: int, seed: int) -> list[tuple[np.ndarray, np.ndarray]]
 class TestConstruction:
     def test_default_opset_builds_operator_lists(self):
         model = PySRModel(opset=_opset())
-        binary = model._est.binary_operators
-        unary = model._est.unary_operators
-        assert binary is not None and unary is not None
-        assert set(binary) == {"+", "-", "*", "/"}
-        assert set(unary) == {"sin", "exp"}
+        assert set(model._binary) == {"+", "-", "*", "/"}
+        assert set(model._unary) == {"sin", "exp"}
 
 
 class TestConstructionUnmappedOperator:
