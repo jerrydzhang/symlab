@@ -13,7 +13,6 @@ resolution-markers = [
 [manifest]
 members = [
     "baselines",
-    "datagen",
     "manifest",
     "pysr-model",
     "random-bfgs",
@@ -217,17 +216,6 @@ nvrtc = [
 nvtx = [
     { name = "nvidia-nvtx", marker = "platform_machine == 'aarch64' or platform_machine == 'x86_64'" },
 ]
-
-[[package]]
-name = "datagen"
-version = "0.1.0"
-source = { editable = "experiments/datagen" }
-dependencies = [
-    { name = "symbolic" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "symbolic", editable = "libs/symbolic" }]
 
 [[package]]
 name = "docutils"
