@@ -66,7 +66,7 @@ class MultiHeadAttention(nn.Module):
             key,
             value,
             attn_mask=attn_mask,
-            dropout_p=self.dropout,
+            dropout_p=self.dropout if self.training else 0.0,
             is_causal=is_causal,
         )
 
