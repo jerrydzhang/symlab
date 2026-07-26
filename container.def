@@ -1,11 +1,10 @@
 Bootstrap: docker
-From: python:3.13-slim
+From: python:3.12-slim
 
 %files
     pyproject.container.toml /build/project/pyproject.toml
-    libs /build/project/libs
-    models /build/project/models
-    experiments /build/project/experiments
+    libs/symbolic /build/project/libs/symbolic
+    models/manifest /build/project/models/manifest
     README.md /build/project/README.md
 
 %post
@@ -15,7 +14,7 @@ From: python:3.13-slim
     cd /build/project
     export UV_PROJECT_ENVIRONMENT=/opt/venv
     # No --frozen: the container pyproject diverges from the committed lock
-    # (git-dep jernerics, cu124 torch), so uv re-resolves at build time.
+    # (git-dep jernerics, cu118 torch, narrowed workspace), so uv re-resolves.
     uv sync --no-dev
     rm -rf /root/.cache /build
 
