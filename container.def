@@ -13,6 +13,9 @@ From: python:3.12-slim
 
     cd /build/project
     export UV_PROJECT_ENVIRONMENT=/opt/venv
+    # uv 0.11+ fetches its newest managed Python (3.14) by default, but torch
+    # cu118 has no cp314 wheels. Pin to the base image's system interpreter.
+    export UV_PYTHON_PREFERENCE=only-system
     # No --frozen: the container pyproject diverges from the committed lock
     # (git-dep jernerics, cu118 torch, narrowed workspace), so uv re-resolves.
     uv sync --no-dev
