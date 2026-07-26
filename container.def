@@ -18,7 +18,9 @@ From: python:3.13-slim
     export UV_PYTHON_PREFERENCE=only-system
     # No --frozen: the container pyproject diverges from the committed lock
     # (git-dep jernerics, cu118 torch, narrowed workspace), so uv re-resolves.
-    uv sync --no-dev
+    # --no-editable: install workspace members (manifest, symbolic) as regular
+    # wheels into site-packages, so their imports survive rm /build below.
+    uv sync --no-dev --no-editable
     rm -rf /root/.cache /build
 
 %runscript
