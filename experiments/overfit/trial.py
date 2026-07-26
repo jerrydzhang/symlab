@@ -179,7 +179,8 @@ def trial(config, tracker):
     tracker.log_value("final_loss", final_loss, step=n_steps)
 
     # Save model checkpoint as artifact
-    import tempfile, os
+    import os
+    import tempfile
     ckpt_dir = tempfile.mkdtemp()
     ckpt_path = os.path.join(ckpt_dir, "model.pt")
     torch.save(model.state_dict(), ckpt_path)

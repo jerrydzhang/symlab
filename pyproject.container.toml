@@ -1,0 +1,41 @@
+# Container-only pyproject for symlab.
+#
+# symlab's root pyproject.toml uses path deps to a sibling jernerics checkout
+# (../jernerics/packages/...) for local dev ergonomics. That path does not
+# exist inside the Apptainer build context, so this file replaces those path
+# sources with git sources (jernerics@beads-test, which carries the
+# context-dimension tracking model the experiment uses) and sources torch from
+# the pytorch-cu124 index (CUDA 12.4 runtime; the HPC's CUDA modules top out at
+# 12.3, so the cu130 local build would not run on the GPU nodes).
+#
+# container.def copies this file into the image as /build/project/pyproject.toml.
+# Workspace members (symbolic, manifest) ship inside the image via %files.
+
+[project]
+name = "symlab"
+version = "0.0.0"
+requires-python = ">=3.13"
+dependencies = [
+    "jernerics",
+    "jernerics-server",
+    "manifest",
+    "torch",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["libs/*", "models/*", "experiments/*"]
+
+[[tool.uv.index]]
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
+
+[tool.uv.sources]
+symbolic = { workspace = true }
+manifest = { workspace = true }
+jernerics = { git = "https://github.com/jerrydzhang/jernerics.git", branch = "beads-test", subdirectory = "packages/jernerics" }
+jernerics-server = { git = "https://github.com/jerrydzhang/jernerics.git", branch = "beads-test", subdirectory = "packages/jernerics-server" }
+torch = { index = "pytorch-cu124" }

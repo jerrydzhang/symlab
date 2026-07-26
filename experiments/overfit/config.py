@@ -18,3 +18,15 @@ base = {
 
 objective = lambda results: results["final_loss"]
 direction = "minimize"
+
+
+backend_overrides = {
+    "hpc": {
+        "partition": "priority-gpu",
+        "time": "0:10:00",
+        "mem": "16G",
+        "gres": "gpu:1",
+        "account": "qiy18011",
+        "qos": "qiy18011a100",
+    },
+}
