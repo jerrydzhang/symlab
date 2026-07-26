@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Callable, Dict, Tuple, cast
+from collections.abc import Callable, Iterator
+from typing import Dict, Tuple, TypeVar, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -9,6 +10,30 @@ import sympy as sp
 
 UnaryCallable = Callable[[np.float64], np.float64]
 BinaryCallable = Callable[[np.float64, np.float64], np.float64]
+
+_T = TypeVar("_T")
+
+
+@dataclass(frozen=True, slots=True)
+class InputNode:
+    slot: int
+    index: int
+
+
+@dataclass(frozen=True, slots=True)
+class ConstantNode:
+    slot: int
+    value: float
+
+
+@dataclass(frozen=True, slots=True)
+class OperatorNode:
+    slot: int
+    name: str
+    operands: tuple[int, ...]
+
+
+type ExpressionNode = InputNode | ConstantNode | OperatorNode
 
 # name -> sympy builder, keyed by OperatorSet op names. The default opset uses
 # exactly these names; custom opsets that reuse the names get the same mapping.
@@ -69,6 +94,15 @@ class OperatorSet:
     def __getitem__(self, key: str) -> Tuple[int, Callable]:
         return self.operators[key]
 
+    def items(self) -> list[Tuple[str, Tuple[int, Callable]]]:
+        return list(self.operators.items())
+
+    def keys(self) -> list[str]:
+        return list(self.operators.keys())
+
+    def values(self) -> list[Tuple[int, Callable]]:
+        return list(self.operators.values())
+
     def name_to_code(self, opname: str) -> int:
         return self._name_to_index[opname]
 
@@ -100,31 +134,73 @@ class Expression:
     constants: npt.NDArray[np.float64]
     output_index: int
 
-    def _render(self, feature_names: list[str] | None = None) -> str:
+    def _node_at(self, slot: int) -> ExpressionNode:
         const_base = self.num_inputs
         cmd_base = const_base + len(self.constants)
-        cache: Dict[int, str] = {}
+        if slot < const_base:
+            return InputNode(slot=slot, index=slot)
+        if slot < cmd_base:
+            return ConstantNode(
+                slot=slot,
+                value=float(self.constants[slot - const_base]),
+            )
 
-        def _at(idx: int) -> str:
-            cached = cache.get(idx)
-            if cached is not None:
-                return cached
-            if idx < const_base:
-                s = feature_names[idx] if feature_names is not None else f"x{idx}"
-            elif idx < cmd_base:
-                s = repr(float(self.constants[idx - const_base]))
+        opcode, p1, p2 = (int(v) for v in self.commands[slot - cmd_base])
+        arity, _ = self.opset.by_index(opcode)
+        operands = (p1,) if arity == 1 else (p1, p2)
+        return OperatorNode(
+            slot=slot,
+            name=self.opset.code_to_name(opcode),
+            operands=operands,
+        )
+
+    def iter_preorder(self) -> Iterator[ExpressionNode]:
+        """Yield rooted semantic nodes in parent-first occurrence order."""
+        stack = [self.output_index]
+        while stack:
+            node = self._node_at(stack.pop())
+            yield node
+            if isinstance(node, OperatorNode):
+                stack.extend(reversed(node.operands))
+
+    def _fold(
+        self,
+        input_fn: Callable[[InputNode], _T],
+        constant_fn: Callable[[ConstantNode], _T],
+        operator_fn: Callable[[OperatorNode, tuple[_T, ...]], _T],
+    ) -> _T:
+        cache: dict[int, _T] = {}
+
+        def fold_at(slot: int) -> _T:
+            if slot in cache:
+                return cache[slot]
+
+            node = self._node_at(slot)
+            if isinstance(node, InputNode):
+                result = input_fn(node)
+            elif isinstance(node, ConstantNode):
+                result = constant_fn(node)
             else:
-                opcode, p1, p2 = (int(v) for v in self.commands[idx - cmd_base])
-                arity, _ = self.opset.by_index(opcode)
-                name = self.opset.code_to_name(opcode)
-                if arity == 1:
-                    s = f"{name}({_at(p1)})"
-                else:
-                    s = f"{name}({_at(p1)}, {_at(p2)})"
-            cache[idx] = s
-            return s
+                operands = tuple(fold_at(operand) for operand in node.operands)
+                result = operator_fn(node, operands)
+            cache[node.slot] = result
+            return result
 
-        return _at(self.output_index)
+        return fold_at(self.output_index)
+
+    def _render(self, feature_names: list[str] | None = None) -> str:
+        def render_operator(node: OperatorNode, operands: tuple[str, ...]) -> str:
+            return f"{node.name}({', '.join(operands)})"
+
+        return self._fold(
+            input_fn=lambda node: (
+                feature_names[node.index]
+                if feature_names is not None
+                else f"x{node.index}"
+            ),
+            constant_fn=lambda node: repr(float(node.value)),
+            operator_fn=render_operator,
+        )
 
     def __str__(self) -> str:
         return self._render()
@@ -162,6 +238,10 @@ class Expression:
 
         Returns a new ``Expression`` (original unchanged). ``X`` is
         ``(num_samples, num_inputs)``; ``y`` is ``(num_samples,)``.
+
+        Each entry in ``constants`` is one optimizer coordinate. Repeated
+        references to the same entry intentionally tie that parameter, while
+        equal values stored in separate entries remain independent.
         """
 
         def residuals(c: np.ndarray) -> np.ndarray:
@@ -206,32 +286,23 @@ class Expression:
                 f"feature_names has {len(feature_names)} entries; "
                 f"Expression needs at least {self.num_inputs}"
             )
-        syms = [sp.Symbol(n) for n in feature_names[: self.num_inputs]]
-        const_base = self.num_inputs
-        cmd_base = const_base + len(self.constants)
-        cache: dict[int, sp.Expr] = {}
+        syms: list[sp.Expr] = [
+            sp.Symbol(name) for name in feature_names[: self.num_inputs]
+        ]
 
-        def at(idx: int) -> sp.Expr:
-            cached = cache.get(idx)
-            if cached is not None:
-                return cached
-            if idx < const_base:
-                v: sp.Expr = syms[idx]
-            elif idx < cmd_base:
-                v = sp.Float(float(self.constants[idx - const_base]))
-            else:
-                row = self.commands[idx - cmd_base]
-                opcode, p1, p2 = int(row[0]), int(row[1]), int(row[2])
-                arity, _ = self.opset.by_index(opcode)
-                name = self.opset.code_to_name(opcode)
-                fn = _SYMPY_OPS.get(name)
-                if fn is None:
-                    raise ValueError(f"no sympy mapping for operator {name!r}")
-                v = fn(at(p1)) if arity == 1 else fn(at(p1), at(p2))
-            cache[idx] = v
-            return v
+        def convert_operator(
+            node: OperatorNode, operands: tuple[sp.Expr, ...]
+        ) -> sp.Expr:
+            fn = _SYMPY_OPS.get(node.name)
+            if fn is None:
+                raise ValueError(f"no sympy mapping for operator {node.name!r}")
+            return fn(*operands)
 
-        return at(self.output_index)
+        return self._fold(
+            input_fn=lambda node: syms[node.index],
+            constant_fn=lambda node: sp.Float(float(node.value)),
+            operator_fn=convert_operator,
+        )
 
     @classmethod
     def from_sympy(
@@ -247,11 +318,18 @@ class Expression:
         """
         opset = opset or OperatorSet.default()
         if feature_names is None:
-            tree = cast(sp.Expr, sp.sympify(source) if isinstance(source, str) else source)
+            tree = cast(
+                sp.Expr, sp.sympify(source) if isinstance(source, str) else source
+            )
             feature_names = _default_feature_names(tree)
         else:
             locals_ = {n: sp.Symbol(n) for n in feature_names}
-            tree = cast(sp.Expr, sp.sympify(source, locals=locals_) if isinstance(source, str) else source)  # ty: ignore[no-matching-overload]
+            tree = cast(
+                sp.Expr,
+                sp.sympify(source, locals=locals_)  # ty: ignore[no-matching-overload]
+                if isinstance(source, str)
+                else source,
+            )
         name_to_idx = {n: i for i, n in enumerate(feature_names)}
         b = ExpressionBuilder(opset, len(feature_names))
 
@@ -300,7 +378,11 @@ class Expression:
             num: list[Ref] = []
             den: list[Ref] = []
             for f in sp.Mul.make_args(rest):
-                if isinstance(f, sp.Pow) and f.args[1].is_Integer and int(f.args[1]) < 0:
+                if (
+                    isinstance(f, sp.Pow)
+                    and f.args[1].is_Integer
+                    and int(f.args[1]) < 0
+                ):
                     for _ in range(-int(f.args[1])):
                         den.append(walk(f.args[0]))
                 else:

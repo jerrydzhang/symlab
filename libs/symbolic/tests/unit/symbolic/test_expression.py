@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from symbolic import ConstantNode, ExpressionNode, InputNode, OperatorNode
 from symbolic.expression import ExpressionBuilder, Kind, OperatorSet, Ref
 
 OP_CASES = [
@@ -184,6 +185,85 @@ class TestExpression:
         assert str(expr) == "add(mul(x0, x1), mul(x0, x1))"
 
 
+class TestIterPreorder:
+    def test_nested_unary_yields_parent_before_semantic_operands(self):
+        b = ExpressionBuilder(OperatorSet.default(), 2)
+        x0, x1 = b.input(0), b.input(1)
+        sin_x0 = b.apply("sin", x0)
+        expr = b.build(b.apply("add", sin_x0, x1))
+
+        nodes: list[ExpressionNode] = list(expr.iter_preorder())
+
+        assert nodes == [
+            OperatorNode(3, "add", (2, 1)),
+            OperatorNode(2, "sin", (0,)),
+            InputNode(0, 0),
+            InputNode(1, 1),
+        ]
+
+    def test_binary_operands_are_yielded_left_before_right(self):
+        b = ExpressionBuilder(OperatorSet.default(), 2)
+        x0, x1 = b.input(0), b.input(1)
+        expr = b.build(b.apply("sub", x0, x1))
+
+        assert list(expr.iter_preorder()) == [
+            OperatorNode(2, "sub", (0, 1)),
+            InputNode(0, 0),
+            InputNode(1, 1),
+        ]
+
+    def test_repeated_input_is_yielded_once_per_occurrence(self):
+        b = ExpressionBuilder(OperatorSet.default(), 1)
+        x0 = b.input(0)
+        expr = b.build(b.apply("add", x0, x0))
+
+        assert list(expr.iter_preorder()) == [
+            OperatorNode(1, "add", (0, 0)),
+            InputNode(0, 0),
+            InputNode(0, 0),
+        ]
+
+    def test_shared_command_and_constant_keep_slot_identity_per_occurrence(self):
+        b = ExpressionBuilder(OperatorSet.default(), 1)
+        x0 = b.input(0)
+        c = b.constant(2.0)
+        m = b.apply("mul", x0, c)
+        expr = b.build(b.apply("add", m, m))
+
+        assert list(expr.iter_preorder()) == [
+            OperatorNode(3, "add", (2, 2)),
+            OperatorNode(2, "mul", (0, 1)),
+            InputNode(0, 0),
+            ConstantNode(1, 2.0),
+            OperatorNode(2, "mul", (0, 1)),
+            InputNode(0, 0),
+            ConstantNode(1, 2.0),
+        ]
+
+    def test_unreachable_stored_command_is_omitted(self):
+        b = ExpressionBuilder(OperatorSet.default(), 2)
+        x0, x1 = b.input(0), b.input(1)
+        live = b.apply("mul", x0, x1)
+        b.apply("sin", x0)
+        expr = b.build(live)
+
+        assert len(expr.commands) == 2
+        assert list(expr.iter_preorder()) == [
+            OperatorNode(2, "mul", (0, 1)),
+            InputNode(0, 0),
+            InputNode(1, 1),
+        ]
+
+    def test_leaf_roots_yield_exactly_one_node(self):
+        input_builder = ExpressionBuilder(OperatorSet.default(), 1)
+        input_expr = input_builder.build(input_builder.input(0))
+        assert list(input_expr.iter_preorder()) == [InputNode(0, 0)]
+
+        constant_builder = ExpressionBuilder(OperatorSet.default(), 1)
+        constant_expr = constant_builder.build(constant_builder.constant(-2.5))
+        assert list(constant_expr.iter_preorder()) == [ConstantNode(1, -2.5)]
+
+
 class TestExpressionBuilder:
     def test_input_returns_correct_ref(self):
         b = ExpressionBuilder(OperatorSet.default(), 3)
@@ -344,3 +424,35 @@ class TestFit:
         fitted = expr.fit(X, y)
         np.testing.assert_allclose(fitted.constants, [0.7], atol=1e-6)
         np.testing.assert_allclose(fitted.evaluate(X), y, atol=1e-8)
+
+    def test_fit_repeated_constant_reference_is_one_tied_coordinate(self):
+        b = ExpressionBuilder(OperatorSet.default(), 2)
+        x0, x1 = b.input(0), b.input(1)
+        c = b.constant(1.0)
+        expr = b.build(
+            b.apply("add", b.apply("mul", c, x0), b.apply("mul", c, x1))
+        )
+
+        rng = np.random.default_rng(5)
+        X = rng.uniform(-2, 2, size=(200, 2))
+        y = 3.0 * X[:, 0] + 3.0 * X[:, 1]
+
+        fitted = expr.fit(X, y)
+        np.testing.assert_allclose(fitted.constants, [3.0], atol=1e-6)
+        np.testing.assert_allclose(fitted.evaluate(X), y, atol=1e-6)
+
+    def test_fit_equal_constants_in_distinct_slots_are_independent_coordinates(self):
+        b = ExpressionBuilder(OperatorSet.default(), 2)
+        x0, x1 = b.input(0), b.input(1)
+        c0, c1 = b.constant(1.0), b.constant(1.0)
+        expr = b.build(
+            b.apply("add", b.apply("mul", c0, x0), b.apply("mul", c1, x1))
+        )
+
+        rng = np.random.default_rng(6)
+        X = rng.uniform(-2, 2, size=(200, 2))
+        y = 3.0 * X[:, 0] + 5.0 * X[:, 1]
+
+        fitted = expr.fit(X, y)
+        np.testing.assert_allclose(fitted.constants, [3.0, 5.0], atol=1e-6)
+        np.testing.assert_allclose(fitted.evaluate(X), y, atol=1e-6)

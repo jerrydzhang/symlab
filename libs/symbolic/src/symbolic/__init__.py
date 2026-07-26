@@ -1,4 +1,11 @@
-from .expression import Expression, OperatorSet  # noqa: F401
+from .expression import (  # noqa: F401
+    ConstantNode,
+    Expression,
+    ExpressionNode,
+    InputNode,
+    OperatorNode,
+    OperatorSet,
+)
 from .model import SRModel  # noqa: F401
 from .generation import (  # noqa: F401
     Evaluated,
@@ -16,9 +23,13 @@ from .transforms import add_noise, split  # noqa: F401
 from .scoring import complexity, r2  # noqa: F401
 
 __all__ = [
+    "ConstantNode",
     "Evaluated",
     "Expression",
+    "ExpressionNode",
+    "InputNode",
     "MantissaExponentConstants",
+    "OperatorNode",
     "OperatorSet",
     "Pipeline",
     "Populated",

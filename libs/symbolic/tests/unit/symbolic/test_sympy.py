@@ -194,6 +194,15 @@ class TestErrors:
         with pytest.raises(ValueError):
             _from(src)
 
+    def test_to_sympy_reports_operator_without_mapping(self):
+        opset = OperatorSet({"square": (1, np.square)})
+        b = ExpressionBuilder(opset, 1)
+        expr = b.build(b.apply("square", b.input(0)))
+
+        with pytest.raises(ValueError) as exc_info:
+            expr.to_sympy()
+        assert str(exc_info.value) == "no sympy mapping for operator 'square'"
+
 
 class TestEdgeCases:
     def test_single_variable_has_no_commands_and_evaluates_as_column(self):
