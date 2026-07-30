@@ -3,6 +3,20 @@ import torch.nn.functional as F
 from .tokenizer import PAD_ID, NUM_ID
 
 
+def transform_constant(c: torch.Tensor) -> torch.Tensor:
+    """Sign-preserving log transform: sign(c) * log1p(|c|).
+
+    Compresses [-100, 100] to [-4.6, 4.6] so MSE behaves well across
+    the full constant range. Invert with inverse_transform_constant.
+    """
+    return torch.sign(c) * torch.log1p(c.abs())
+
+
+def inverse_transform_constant(t: torch.Tensor) -> torch.Tensor:
+    """Inverse of transform_constant: sign(t) * expm1(|t|)."""
+    return torch.sign(t) * torch.expm1(t.abs())
+
+
 def compute_loss(
     logits: torch.Tensor,
     num_preds: torch.Tensor,
@@ -25,13 +39,13 @@ def decomposed_loss(
     num_targets: torch.Tensor,
     ignore_index: int = PAD_ID,
     num_index: int = NUM_ID,
-    max_const: float = 10.0,
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """Return (ce_loss, mse_loss) separately for logging.
 
-    Constant targets are clipped to [-max_const, max_const] before MSE to
-    prevent extreme values from destabilizing training. The stats token
-    carries normalization params for recovering real constants at inference.
+    Constant targets are log-transformed (sign-preserving log1p) before
+    MSE so the loss operates in a bounded range regardless of the real
+    constant magnitude. Predictions are inverse-transformed at generation
+    time via inverse_transform_constant.
     """
     logits = logits.flatten(0, 1)
     token_targets = token_targets.flatten(0, 1)
@@ -42,7 +56,7 @@ def decomposed_loss(
 
     num_mask = token_targets == num_index
     num_preds = num_preds[num_mask]
-    num_targets = num_targets[num_mask].clamp(-max_const, max_const)
+    num_targets = transform_constant(num_targets[num_mask])
     if num_preds.numel() == 0:
         mse_loss = torch.tensor(0.0, device=logits.device)
     else:

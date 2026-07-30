@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from .tokenizer import PAD_ID, BOS_ID, EOS_ID, NUM_ID
+from .loss import inverse_transform_constant
 
 
 def _prepend_stats_mask(
@@ -367,8 +368,9 @@ class TransformerModel(nn.Module):
             next_token = torch.masked_fill(next_token, finished, PAD_ID)
 
             is_num = next_token == NUM_ID
+            raw_num_preds = inverse_transform_constant(num_preds[:, t - 1, 0])
             gen_num_values[:, t] = torch.where(
-                is_num, num_preds[:, t - 1, 0], torch.ones(batch_size, device=device)
+                is_num, raw_num_preds, torch.ones(batch_size, device=device)
             )
 
             gen_tokens[:, t] = next_token

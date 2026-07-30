@@ -58,7 +58,9 @@ class TestMSE:
         loss_l0 = compute_loss(logits, num_preds, targets, num_targets, lambda_=0.0)
         loss_l1 = compute_loss(logits, num_preds, targets, num_targets, lambda_=1.0)
         mask = targets == NUM_ID
-        manual_mse = F.mse_loss(num_preds.squeeze(-1)[mask], num_targets[mask])
+        from manifest.loss import transform_constant
+        transformed_targets = transform_constant(num_targets[mask])
+        manual_mse = F.mse_loss(num_preds.squeeze(-1)[mask], transformed_targets)
         assert torch.allclose(loss_l1 - loss_l0, manual_mse, atol=1e-6)
 
 
@@ -80,7 +82,9 @@ class TestLambdaWeighting:
         loss_l1 = compute_loss(**common, lambda_=1.0)
         loss_l2 = compute_loss(**common, lambda_=2.5)
         mask = targets == NUM_ID
-        mse = F.mse_loss(num_preds.squeeze(-1)[mask], num_targets[mask])
+        from manifest.loss import transform_constant
+        transformed = transform_constant(num_targets[mask])
+        mse = F.mse_loss(num_preds.squeeze(-1)[mask], transformed)
         assert torch.allclose(loss_l1 - loss_l0, mse, atol=1e-6)
         assert torch.allclose(loss_l2 - loss_l0, 2.5 * mse, atol=1e-6)
 
