@@ -32,7 +32,7 @@ base = {
     "lr": 3e-4,
     "weight_decay": 0.01,
     "warmup_steps": 200,
-    "lambda_": 1.0,
+    "lambda_": 0.0,  # ablation: no MSE head, pure structure learning
 
     "val_every": 250,
     "log_every": 50,
