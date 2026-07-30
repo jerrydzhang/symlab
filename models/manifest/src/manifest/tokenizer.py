@@ -79,6 +79,11 @@ class XValsTokenizer:
 
             if token_id == self.vocab["<EOS>"]:
                 break
+            if token_id == self.vocab["<BOS>"]:
+                # An untrained model can re-emit <BOS> mid-sequence; treat it
+                # as a terminator (like <PAD>/<EOS>) so decode returns None
+                # instead of key-erroring on opset lookup.
+                break
 
             token_name = self.id_to_token[token_id]
 
