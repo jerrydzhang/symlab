@@ -33,6 +33,6 @@ backend_overrides = {
         "time": "2:00:00",
         "mem": "32G",
         "gres": "gpu:1",
-        "cpus": 8,
+        "cpus-per-task": 8,
     },
 }
