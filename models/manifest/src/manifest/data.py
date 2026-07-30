@@ -24,6 +24,8 @@ def collate_fn(samples: list[Evaluated], tokenizer: XValsTokenizer) -> SRBatch:
     data_list = []
     stats_list = []
 
+    max_inputs = tokenizer.max_inputs
+
     for sample in samples:
         tokens, num_values = tokenizer.encode(sample.expression)
         tokens_list.append(torch.tensor(tokens, dtype=torch.long))
@@ -31,12 +33,21 @@ def collate_fn(samples: list[Evaluated], tokenizer: XValsTokenizer) -> SRBatch:
 
         X = sample.X
         y = sample.y
-        X_mean = X.mean(axis=0)
-        X_std = X.std(axis=0)
+
+        # Pad X to max_inputs columns (unused variables get zeros)
+        n_actual = X.shape[1]
+        if n_actual < max_inputs:
+            X_padded = np.zeros((X.shape[0], max_inputs))
+            X_padded[:, :n_actual] = X
+        else:
+            X_padded = X
+
+        X_mean = X_padded.mean(axis=0)
+        X_std = X_padded.std(axis=0)
         y_mean = y.mean()
         y_std = y.std()
 
-        X_norm = (X - X_mean) / (X_std + 1e-8)
+        X_norm = (X_padded - X_mean) / (X_std + 1e-8)
         y_norm = (y - y_mean) / (y_std + 1e-8)
         combined_data = np.column_stack((X_norm, y_norm))
         data_list.append(torch.from_numpy(combined_data).float())

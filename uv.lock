@@ -20,6 +20,7 @@ members = [
     "srbench",
     "symbolic",
     "symlab",
+    "train",
 ]
 
 [[package]]
@@ -1831,6 +1832,21 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/dd/84/da0e5038228fa34dfd77c5026b173ed035d2a3ba31f1077590c013de2bff/tqdm-4.69.1.tar.gz", hash = "sha256:2be21080a0ce17e902c2f1baeb6a74bf551b67bbdfa4bc0109fad471d0b4cb0d", size = 793046, upload-time = "2026-07-24T14:22:02.08Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/01/50/5817619a0fca56aff06383dbfde7ae017b3ca383915b3f1e4713164273cf/tqdm-4.69.1-py3-none-any.whl", hash = "sha256:0a654b96f7a2660cceb615b56f307ec2bef96c515409014a429a561981ab52b4", size = 675452, upload-time = "2026-07-24T14:22:00.048Z" },
+]
+
+[[package]]
+name = "train"
+version = "0.0.0"
+source = { editable = "experiments/train" }
+dependencies = [
+    { name = "manifest" },
+    { name = "torch" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "manifest", editable = "models/manifest" },
+    { name = "torch" },
 ]
 
 [[package]]
