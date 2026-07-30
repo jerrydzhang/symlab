@@ -8,7 +8,7 @@ from torch.optim.lr_scheduler import LambdaLR
 from manifest.model import TransformerModel
 from manifest.tokenizer import XValsTokenizer, PAD_ID, NUM_ID, EOS_ID
 from manifest.data import collate_fn
-from manifest.loss import compute_loss
+from manifest.loss import compute_loss, decomposed_loss
 from symbolic import OperatorSet
 from symbolic.generation import (
     Pipeline,
@@ -140,13 +140,19 @@ def trial(config, tracker):
                 preds = logits.argmax(dim=-1)
                 mask = target_tokens != PAD_ID
                 acc = (preds == target_tokens)[mask].float().mean().item()
+                ce, mse = decomposed_loss(
+                    logits, num_preds, target_tokens, target_nums,
+                )
 
             tracker.log_value("loss", loss.item(), step=step)
+            tracker.log_value("ce_loss", ce.item(), step=step)
+            tracker.log_value("mse_loss", mse.item(), step=step)
             tracker.log_value("token_acc", acc, step=step)
             tracker.log_value("grad_norm", grad_norm.item(), step=step)
             tracker.log_value("lr", scheduler.get_last_lr()[0], step=step)
             print(
                 f"step {step:5d}/{n_steps}  loss={loss.item():.4f}  "
+                f"ce={ce.item():.4f}  mse={mse.item():.2f}  "
                 f"acc={acc:.3f}  gn={grad_norm.item():.2f}  "
                 f"lr={scheduler.get_last_lr()[0]:.6f}"
             )

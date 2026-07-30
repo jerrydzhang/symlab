@@ -52,6 +52,8 @@ def collate_fn(samples: list[Evaluated], tokenizer: XValsTokenizer) -> SRBatch:
         combined_data = np.column_stack((X_norm, y_norm))
         data_list.append(torch.from_numpy(combined_data).float())
 
+        # Normalize constant values: the num_head predicts normalized constants.
+        # Real values are recovered at inference via the stats token.
         stats = np.concatenate([X_mean, X_std, [y_mean, y_std]])
         stats_list.append(torch.from_numpy(stats).float())
 

@@ -15,7 +15,7 @@ base = {
     "lr": 3e-4,
     "weight_decay": 0.01,
     "warmup_steps": 500,
-    "lambda_": 1.0,
+    "lambda_": 0.01,
     "dropout": 0.1,
     "val_every": 500,
     "log_every": 50,
