@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from .tokenizer import PAD_ID, BOS_ID, EOS_ID, NUM_ID
+
 
 class MultiHeadAttention(nn.Module):
     def __init__(
@@ -278,6 +280,7 @@ class TransformerModel(nn.Module):
         dropout: float = 0.1,
     ):
         super().__init__()
+        self.max_seq_len = max_seq_len
         self.encoder = DataEncoder(
             input_dim, d_model, n_heads, d_ff, n_enc_layers, dropout
         )
@@ -298,3 +301,49 @@ class TransformerModel(nn.Module):
             tokens, num_values, enc_output, data_mask=data_mask, token_mask=token_mask
         )
         return token_logits, num_preds
+
+    @torch.no_grad()
+    def generate(
+        self,
+        data: torch.Tensor,
+        data_mask: torch.Tensor | None = None,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        device = data.device
+        batch_size = data.size(0)
+        gen_num_values = torch.ones(
+            (batch_size, self.max_seq_len), dtype=torch.float, device=device
+        )
+        gen_tokens = torch.full(
+            (batch_size, self.max_seq_len),
+            fill_value=PAD_ID,
+            dtype=torch.long,
+            device=device,
+        )
+        gen_tokens[:, 0] = BOS_ID
+
+        enc_output = self.encoder(data, data_mask=data_mask)
+
+        finished = torch.zeros(batch_size, dtype=torch.bool, device=device)
+        for t in range(1, self.max_seq_len):
+            token_logits, num_preds = self.decoder(
+                gen_tokens[:, :t],
+                gen_num_values[:, :t],
+                enc_output,
+                data_mask=data_mask,
+            )
+
+            next_token = token_logits[:, t - 1, :].argmax(dim=-1)
+            next_token = torch.masked_fill(next_token, finished, PAD_ID)
+
+            is_num = next_token == NUM_ID
+            gen_num_values[:, t] = torch.where(
+                is_num, num_preds[:, t - 1, 0], torch.ones(batch_size, device=device)
+            )
+
+            gen_tokens[:, t] = next_token
+
+            finished |= next_token == EOS_ID
+            if finished.all():
+                break
+
+        return gen_tokens, gen_num_values
