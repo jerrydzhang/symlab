@@ -195,13 +195,15 @@ class TestErrors:
             _from(src)
 
     def test_to_sympy_reports_operator_without_mapping(self):
-        opset = OperatorSet({"square": (1, np.square)})
+        # "negate" is a real numpy ufunc but intentionally has no entry in the
+        # module-level _SYMPY_OPS map, so to_sympy must reject it.
+        opset = OperatorSet({"negate": (1, np.negative)})
         b = ExpressionBuilder(opset, 1)
-        expr = b.build(b.apply("square", b.input(0)))
+        expr = b.build(b.apply("negate", b.input(0)))
 
         with pytest.raises(ValueError) as exc_info:
             expr.to_sympy()
-        assert str(exc_info.value) == "no sympy mapping for operator 'square'"
+        assert str(exc_info.value) == "no sympy mapping for operator 'negate'"
 
 
 class TestEdgeCases:

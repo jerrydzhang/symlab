@@ -5,6 +5,20 @@ import torch.nn.functional as F
 from .tokenizer import PAD_ID, BOS_ID, EOS_ID, NUM_ID
 
 
+def _prepend_stats_mask(
+    data_mask: torch.Tensor | None, batch_size: int, device: torch.device
+) -> torch.Tensor | None:
+    """Prepend a True column to ``data_mask`` covering the stats token.
+
+    The stats token is always a real (non-padding) position. When no mask is
+    supplied the caller attends to every key, so there is nothing to extend.
+    """
+    if data_mask is None:
+        return None
+    stats_col = torch.ones(batch_size, 1, dtype=data_mask.dtype, device=device)
+    return torch.cat([stats_col, data_mask], dim=1)
+
+
 class MultiHeadAttention(nn.Module):
     def __init__(
         self, d_model: int, n_heads: int, dropout: float = 0.1, use_bias: bool = True
@@ -201,15 +215,23 @@ class DataEncoder(nn.Module):
     ):
         super().__init__()
         self.data_proj = nn.Linear(input_dim, d_model)
+        self.stats_proj = nn.Linear(2 * input_dim, d_model)
         self.blocks = nn.ModuleList(
             [EncoderBlock(d_model, n_heads, d_ff, dropout) for _ in range(n_layers)]
         )
         self.final_norm = LayerNorm(d_model)
 
     def forward(
-        self, data: torch.Tensor, data_mask: torch.Tensor | None = None
+        self,
+        data: torch.Tensor,
+        data_mask: torch.Tensor | None = None,
+        stats: torch.Tensor | None = None,
     ) -> torch.Tensor:
         x = self.data_proj(data)
+        if stats is not None:
+            stats_tok = self.stats_proj(stats).unsqueeze(1)
+            x = torch.cat([stats_tok, x], dim=1)
+            data_mask = _prepend_stats_mask(data_mask, x.size(0), x.device)
         for block in self.blocks:
             x = block(x, key_padding_mask=data_mask)
         x = self.final_norm(x)
@@ -295,8 +317,13 @@ class TransformerModel(nn.Module):
         num_values: torch.Tensor,
         data_mask: torch.Tensor | None = None,
         token_mask: torch.Tensor | None = None,
+        stats: torch.Tensor | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor]:
-        enc_output = self.encoder(data, data_mask=data_mask)
+        enc_output = self.encoder(data, data_mask=data_mask, stats=stats)
+        # The encoder prepends a stats token, so the decoder's cross-attention
+        # key mask must cover that extra position.
+        if stats is not None:
+            data_mask = _prepend_stats_mask(data_mask, data.size(0), data.device)
         token_logits, num_preds = self.decoder(
             tokens, num_values, enc_output, data_mask=data_mask, token_mask=token_mask
         )
@@ -307,6 +334,7 @@ class TransformerModel(nn.Module):
         self,
         data: torch.Tensor,
         data_mask: torch.Tensor | None = None,
+        stats: torch.Tensor | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         device = data.device
         batch_size = data.size(0)
@@ -321,7 +349,10 @@ class TransformerModel(nn.Module):
         )
         gen_tokens[:, 0] = BOS_ID
 
-        enc_output = self.encoder(data, data_mask=data_mask)
+        enc_output = self.encoder(data, data_mask=data_mask, stats=stats)
+        # Match the decoder's cross-attention key mask to the stats token.
+        if stats is not None:
+            data_mask = _prepend_stats_mask(data_mask, batch_size, device)
 
         finished = torch.zeros(batch_size, dtype=torch.bool, device=device)
         for t in range(1, self.max_seq_len):

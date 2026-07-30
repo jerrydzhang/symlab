@@ -15,20 +15,34 @@ class SRBatch(TypedDict):
     num_values: torch.Tensor
     data_mask: torch.Tensor
     token_mask: torch.Tensor
+    stats: torch.Tensor
 
 
 def collate_fn(samples: list[Evaluated], tokenizer: XValsTokenizer) -> SRBatch:
     tokens_list = []
     num_values_list = []
     data_list = []
+    stats_list = []
 
     for sample in samples:
         tokens, num_values = tokenizer.encode(sample.expression)
         tokens_list.append(torch.tensor(tokens, dtype=torch.long))
         num_values_list.append(torch.tensor(num_values, dtype=torch.float))
 
-        combined_data = np.column_stack((sample.X, sample.y))
+        X = sample.X
+        y = sample.y
+        X_mean = X.mean(axis=0)
+        X_std = X.std(axis=0)
+        y_mean = y.mean()
+        y_std = y.std()
+
+        X_norm = (X - X_mean) / (X_std + 1e-8)
+        y_norm = (y - y_mean) / (y_std + 1e-8)
+        combined_data = np.column_stack((X_norm, y_norm))
         data_list.append(torch.from_numpy(combined_data).float())
+
+        stats = np.concatenate([X_mean, X_std, [y_mean, y_std]])
+        stats_list.append(torch.from_numpy(stats).float())
 
     padded_tokens = pad_sequence(tokens_list, batch_first=True, padding_value=PAD_ID)
     padded_num_values = pad_sequence(
@@ -46,10 +60,12 @@ def collate_fn(samples: list[Evaluated], tokenizer: XValsTokenizer) -> SRBatch:
         data_padded[i, : d.shape[0], :] = d
     data_mask = torch.arange(max_n)[None, :] < data_lens[:, None]
 
+    stats = torch.stack(stats_list, dim=0)
     return SRBatch(
         data=data_padded,
         tokens=padded_tokens,
         num_values=padded_num_values,
+        stats=stats,
         data_mask=data_mask,
         token_mask=token_mask,
     )

@@ -43,7 +43,33 @@ _SYMPY_OPS: dict[str, Callable[..., sp.Expr]] = {
     "mul": lambda a, b: a * b,
     "div": lambda a, b: a / b,
     "sin": sp.sin,
+    "cos": sp.cos,
+    "tan": sp.tan,
+    "asin": sp.asin,
+    "acos": sp.acos,
+    "atan": sp.atan,
+    "sinh": sp.sinh,
+    "cosh": sp.cosh,
+    "tanh": sp.tanh,
+    "asinh": sp.asinh,
+    "acosh": sp.acosh,
+    "atanh": sp.atanh,
     "exp": sp.exp,
+    "log": sp.log,
+    "sqrt": sp.sqrt,
+    "abs": sp.Abs,
+    "square": lambda x: x**2,
+    "cube": lambda x: x**3,
+}
+
+# Reverse map: sympy function *class* -> op name, for the entries above whose
+# builder is a class rather than a lambda. ``from_sympy`` dispatches on node
+# type via this map; ``sqrt``/``square``/``cube`` (which compile to ``Pow``)
+# are handled separately in ``_walk_pow``.
+_SYMPY_FUNC_OPS: dict[type, str] = {
+    fn: name
+    for name, fn in _SYMPY_OPS.items()
+    if isinstance(fn, type) and issubclass(fn, sp.Expr)
 }
 
 
@@ -88,6 +114,36 @@ class OperatorSet:
                 "div": (2, np.divide),
                 "sin": (1, np.sin),
                 "exp": (1, np.exp),
+            }
+        )
+
+    @classmethod
+    def comprehensive(cls) -> "OperatorSet":
+        """The full opset: the four binary ops plus all unary elementwise ops."""
+        return cls(
+            operators={
+                "add": (2, np.add),
+                "sub": (2, np.subtract),
+                "mul": (2, np.multiply),
+                "div": (2, np.divide),
+                "sin": (1, np.sin),
+                "cos": (1, np.cos),
+                "tan": (1, np.tan),
+                "asin": (1, np.arcsin),
+                "acos": (1, np.arccos),
+                "atan": (1, np.arctan),
+                "sinh": (1, np.sinh),
+                "cosh": (1, np.cosh),
+                "tanh": (1, np.tanh),
+                "asinh": (1, np.arcsinh),
+                "acosh": (1, np.arccosh),
+                "atanh": (1, np.arctanh),
+                "exp": (1, np.exp),
+                "log": (1, np.log),
+                "sqrt": (1, np.sqrt),
+                "square": (1, np.square),
+                "cube": (1, lambda x: np.power(x, 3)),
+                "abs": (1, np.abs),
             }
         )
 
@@ -341,10 +397,12 @@ class Expression:
                 return b.input(name_to_idx[key])
             if node.is_Number:
                 return b.constant(float(node))
-            if isinstance(node, sp.sin) and "sin" in opset.operators:
-                return b.apply("sin", walk(cast(sp.Expr, node.args[0])))
-            if isinstance(node, sp.exp) and "exp" in opset.operators:
-                return b.apply("exp", walk(cast(sp.Expr, node.args[0])))
+            # Generic dispatch over any mapped sympy function class (sin, exp,
+            # cos, tan, asin/acos/atan, sinh/cosh/tanh, asinh/acosh/atanh, log,
+            # abs). sqrt/square/cube compile to Pow and are handled in _walk_pow.
+            for sp_cls, opname in _SYMPY_FUNC_OPS.items():
+                if isinstance(node, sp_cls) and opname in opset.operators:
+                    return b.apply(opname, walk(cast(sp.Expr, node.args[0])))
             if isinstance(node, sp.Pow):
                 return _walk_pow(node)
             if isinstance(node, sp.Mul):
@@ -361,6 +419,12 @@ class Expression:
             base, e = node.args
             if e.is_Integer:
                 n = int(e)
+                # Prefer a single cube/square op over mul-expansion when the
+                # opset provides one (default opset has neither -> unchanged).
+                if n == 3 and "cube" in opset.operators:
+                    return b.apply("cube", walk(base))
+                if n == 2 and "square" in opset.operators:
+                    return b.apply("square", walk(base))
                 if n >= 1:
                     acc = walk(base)
                     for _ in range(n - 1):
@@ -371,6 +435,9 @@ class Expression:
                     for _ in range(-n - 1):
                         acc = b.apply("mul", acc, walk(base))
                     return b.apply("div", b.constant(1.0), acc)
+            # x**(1/2) -> sqrt when available (sp.sqrt compiles to this form).
+            if e == sp.Rational(1, 2) and "sqrt" in opset.operators:
+                return b.apply("sqrt", walk(base))
             raise ValueError(f"unsupported exponent {e} in {node}")
 
         def _walk_mul(node: sp.Mul) -> Ref:

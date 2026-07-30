@@ -56,6 +56,7 @@ class TestDtypes:
         assert batch["num_values"].dtype == torch.float32
         assert batch["data_mask"].dtype == torch.bool
         assert batch["token_mask"].dtype == torch.bool
+        assert batch["stats"].dtype == torch.float32
 
 
 class TestShapes:
@@ -68,6 +69,7 @@ class TestShapes:
         assert batch["num_values"].shape == (B, 8)
         assert batch["data_mask"].shape == (B, 12)
         assert batch["token_mask"].shape == (B, 8)
+        assert batch["stats"].shape == (B, 6)  # 2 * (n_features + target)
 
 
 class TestPadding:
@@ -121,16 +123,35 @@ class TestMaskDerivation:
 
 
 class TestDataContent:
-    def test_data_aligns_column_stack_of_X_and_y(self):
+    def test_data_is_zscore_normalized(self):
         samples = _mixed_samples()
         batch = collate_fn(samples, _tok())
         data = batch["data"]
         for i, sample in enumerate(samples):
             n = sample.X.shape[0]
-            expected = torch.from_numpy(np.column_stack((sample.X, sample.y))).float()
+            X_norm = (sample.X - sample.X.mean(axis=0)) / (sample.X.std(axis=0) + 1e-8)
+            y_norm = (sample.y - sample.y.mean()) / (sample.y.std() + 1e-8)
+            expected = torch.from_numpy(np.column_stack((X_norm, y_norm))).float()
             assert torch.allclose(data[i, :n, :], expected, atol=1e-6)
             # padded rows are zero-filled
             assert torch.all(data[i, n:, :] == 0.0)
+
+    def test_stats_vector_holds_normalization_parameters(self):
+        samples = _mixed_samples()
+        batch = collate_fn(samples, _tok())
+        stats = batch["stats"]
+        assert stats.shape == (len(samples), 6)  # 2 * (n_features + target)
+        for i, sample in enumerate(samples):
+            expected = np.concatenate(
+                [
+                    sample.X.mean(axis=0),
+                    sample.X.std(axis=0),
+                    [sample.y.mean(), sample.y.std()],
+                ]
+            )
+            assert torch.allclose(
+                stats[i], torch.from_numpy(expected).float(), atol=1e-6
+            )
 
 
 class TestVariableLength:

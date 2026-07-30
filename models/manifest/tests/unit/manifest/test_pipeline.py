@@ -64,6 +64,7 @@ class TestEndToEnd:
             batch["num_values"],
             batch["data_mask"],
             batch["token_mask"],
+            stats=batch["stats"],
         )
         assert logits.shape[:2] == batch["tokens"].shape
         assert num_preds.shape[:2] == batch["tokens"].shape
@@ -95,6 +96,7 @@ class TestEndToEnd:
                 batch["num_values"],
                 batch["data_mask"],
                 batch["token_mask"],
+                stats=batch["stats"],
             )
             return compute_loss(
                 logits, num_preds, batch["tokens"], batch["num_values"], lambda_=0.5

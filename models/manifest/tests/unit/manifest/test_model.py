@@ -242,19 +242,28 @@ class TestDecoderBlock:
 class TestDataEncoder:
     def test_output_shape(self):
         enc = DataEncoder(INPUT_DIM, D_MODEL, N_HEADS, D_FF, n_layers=2, dropout=0.0)
-        assert enc(torch.randn(2, 10, INPUT_DIM)).shape == (2, 10, D_MODEL)
+        stats = torch.randn(2, 2 * INPUT_DIM)
+        # the stats token is prepended, adding one position
+        assert enc(torch.randn(2, 10, INPUT_DIM), stats=stats).shape == (
+            2,
+            11,
+            D_MODEL,
+        )
 
     def test_accepts_data_mask(self):
         enc = DataEncoder(INPUT_DIM, D_MODEL, N_HEADS, D_FF, n_layers=2, dropout=0.0)
         mask = torch.ones(2, 10, dtype=torch.bool)
         mask[:, -3:] = False
-        out = enc(torch.randn(2, 10, INPUT_DIM), data_mask=mask)
+        stats = torch.randn(2, 2 * INPUT_DIM)
+        out = enc(torch.randn(2, 10, INPUT_DIM), data_mask=mask, stats=stats)
         assert torch.isfinite(out).all()
 
     def test_gradient_flows(self):
         enc = DataEncoder(INPUT_DIM, D_MODEL, N_HEADS, D_FF, n_layers=2, dropout=0.0)
-        enc(torch.randn(2, 10, INPUT_DIM)).sum().backward()
+        stats = torch.randn(2, 2 * INPUT_DIM)
+        enc(torch.randn(2, 10, INPUT_DIM), stats=stats).sum().backward()
         assert enc.data_proj.weight.grad.abs().sum() > 0
+        assert enc.stats_proj.weight.grad.abs().sum() > 0
         assert enc.blocks[0].self_attn.packed_qkv_proj.weight.grad.abs().sum() > 0
 
 
@@ -327,22 +336,24 @@ class TestTransformerModel:
             torch.randn(B, Ld, INPUT_DIM),
             torch.randint(0, VOCAB, (B, L)),
             torch.ones(B, L),
+            torch.randn(B, 2 * INPUT_DIM),
         )
 
     def test_forward_output_shapes(self):
         m = self._model()
-        data, tokens, num_values = self._inputs()
-        logits, num_preds = m(data, tokens, num_values)
+        data, tokens, num_values, stats = self._inputs()
+        logits, num_preds = m(data, tokens, num_values, stats=stats)
         assert logits.shape == (2, 8, VOCAB)
         assert num_preds.shape == (2, 8, 1)
 
     def test_gradient_flows_to_all_components(self):
         m = self._model()
-        data, tokens, num_values = self._inputs()
-        logits, num_preds = m(data, tokens, num_values)
+        data, tokens, num_values, stats = self._inputs()
+        logits, num_preds = m(data, tokens, num_values, stats=stats)
         (logits.sum() + num_preds.sum()).backward()
         checks = {
             "encoder.data_proj": m.encoder.data_proj.weight,
+            "encoder.stats_proj": m.encoder.stats_proj.weight,
             "encoder.block": m.encoder.blocks[0].self_attn.packed_qkv_proj.weight,
             "encoder.final_norm": m.encoder.final_norm.weight,
             "decoder.token_emb": m.decoder.token_emb.weight,
@@ -359,9 +370,9 @@ class TestTransformerModel:
     def test_eval_mode_is_deterministic(self):
         m = self._model(dropout=0.3)
         m.eval()
-        data, tokens, num_values = self._inputs()
-        out1 = m(data, tokens, num_values)
-        out2 = m(data, tokens, num_values)
+        data, tokens, num_values, stats = self._inputs()
+        out1 = m(data, tokens, num_values, stats=stats)
+        out2 = m(data, tokens, num_values, stats=stats)
         assert torch.allclose(out1[0], out2[0], atol=1e-6)
         assert torch.allclose(out1[1], out2[1], atol=1e-6)
 
@@ -371,10 +382,13 @@ class TestTransformerModel:
         data = torch.randn(B, Ld, INPUT_DIM)
         tokens = torch.randint(0, VOCAB, (B, L))
         num_values = torch.ones(B, L)
+        stats = torch.randn(B, 2 * INPUT_DIM)
         data_mask = torch.ones(B, Ld, dtype=torch.bool)
         token_mask = torch.ones(B, L, dtype=torch.bool)
         data_mask[:, -2:] = False
         token_mask[:, -1] = False
-        logits, num_preds = m(data, tokens, num_values, data_mask, token_mask)
+        logits, num_preds = m(
+            data, tokens, num_values, data_mask, token_mask, stats=stats
+        )
         assert torch.isfinite(logits).all()
         assert torch.isfinite(num_preds).all()

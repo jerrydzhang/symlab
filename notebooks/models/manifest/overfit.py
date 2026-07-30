@@ -161,7 +161,12 @@ def _(
 
         optimizer.zero_grad()
         logits, num_preds = model(
-            _batch["data"], input_tokens, input_nums, _batch["data_mask"], target_mask
+            _batch["data"],
+            input_tokens,
+            input_nums,
+            _batch["data_mask"],
+            target_mask,
+            stats=_batch["stats"],
         )
         loss = compute_loss(
             logits, num_preds, target_tokens, target_nums, lambda_=lambda_
@@ -201,7 +206,9 @@ def _(
     ]
     batch = collate_fn(samples, tokenizer)
 
-    gen_tokens, gen_nums = model.generate(batch["data"][:1], batch["data_mask"][:1])
+    gen_tokens, gen_nums = model.generate(
+        batch["data"][:1], batch["data_mask"][:1], stats=batch["stats"][:1]
+    )
     tokens_list = gen_tokens[0].tolist()
     nums_list = gen_nums[0].tolist()
 

@@ -43,12 +43,13 @@ def greedy_decode(model, batch, tokenizer, max_len):
     # Greedy autoregressive token generation from the first sample
     data = batch["data"][:1]
     data_mask = batch["data_mask"][:1]
+    stats = batch["stats"][:1]
     tokens = torch.full((1, 1), tokenizer.vocab["<BOS>"], dtype=torch.long)
     nums = torch.ones((1, 1))
     mask = torch.ones((1, 1), dtype=torch.bool)
 
     for _ in range(max_len):
-        logits, num_preds = model(data, tokens, nums, data_mask, mask)
+        logits, num_preds = model(data, tokens, nums, data_mask, mask, stats=stats)
         next_id = logits[0, -1].argmax().item()
         if next_id == tokenizer.vocab["<EOS>"]:
             break
@@ -149,7 +150,12 @@ def trial(config, tracker):
 
         optimizer.zero_grad()
         logits, num_preds = model(
-            batch["data"], input_tokens, input_nums, batch["data_mask"], target_mask
+            batch["data"],
+            input_tokens,
+            input_nums,
+            batch["data_mask"],
+            target_mask,
+            stats=batch["stats"],
         )
         ce_loss, mse_loss = decomposed_loss(
             logits, num_preds, target_tokens, target_nums
