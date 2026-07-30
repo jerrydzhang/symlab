@@ -1,0 +1,65 @@
+[project]
+name = "symlab"
+version = "0.0.0"
+requires-python = ">=3.13"
+dependencies = [
+    "jernerics",
+    "jernerics-server",
+    "manifest",
+    "marimo>=0.23.14",
+    "torch>=2.13.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["libs/*", "models/*", "experiments/*"]
+
+[tool.uv.sources]
+symbolic = { workspace = true }
+manifest = { workspace = true }
+jernerics = { path = "../jernerics/packages/jernerics", editable = true }
+jernerics-server = { path = "../jernerics/packages/jernerics-server", editable = true }
+
+[tool.jernerics]
+tracking_server = "https://atlas.taile454b.ts.net"
+
+[tool.jernerics.backends.hpc]
+type = "slurm"
+host = "jez21005@hpc2.storrs.hpc.uconn.edu"
+remote_dir = "~/projects/symlab-overfit"
+cache_dir = "/scratch/qiy18011/jez21005/jernerics/{project_name}"
+container_type = "apptainer"
+heartbeat_interval_s = 30
+stale_after_s = 180
+grace_period_s = 60
+max_retries = 2
+
+[tool.jernerics.backends.hpc.slurm]
+# Build job runs on the CPU priority partition. The trial sweep overrides to
+# priority-gpu via backend_overrides in experiments/overfit/config.py.
+partition = "priority"
+time = "0:30:00"
+mem = "16G"
+cpus = 4
+
+[tool.jernerics.backends.hpc.apptainer]
+build_dir = "/dev/shm/build/{project_name}"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.15.20",
+    "ty>=0.0.56",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Vendored SRBench upstream: pinned third-party code we don't modify
+# (refresh.sh validates the import cluster is closed). Lint is not actionable.
+"libs/srbench/src/srbench/srbench_upstream/**" = ["F401", "E402", "F541", "F841", "E711"]
+
+[tool.ty.src]
+# Same vendored cluster: imports resolve only via runtime sys.path
+# manipulation, so static analysis cannot (and should not) resolve them.
+exclude = ["libs/srbench/src/srbench/srbench_upstream/**"]
