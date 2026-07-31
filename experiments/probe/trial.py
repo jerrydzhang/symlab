@@ -1,5 +1,6 @@
 import json
 import os
+import pickle
 import sys
 import tempfile
 
@@ -122,11 +123,31 @@ def trial(config, tracker):
     scheduler = LambdaLR(optimizer, lr_lambda)
     use_bf16 = device.type == "cuda" and config.get("bf16", True)
 
-    val_samples = list(pipeline.iter(config["val_batch_size"]))
+    # Optional pre-generated data pool (avoids slow per-step generation,
+    # e.g. sympy canonicalization). Holds out val + test slices.
+    pool_file = config.get("pool_file")
+    test_samples = None
+    train_pool = None
+    if pool_file:
+        with open(pool_file, "rb") as f:
+            pool = pickle.load(f)
+        n_test = config.get("n_test", 100)
+        n_val = config["val_batch_size"]
+        val_samples = pool[:n_val]
+        test_samples = pool[n_val:n_val + n_test]
+        train_pool = pool[n_val + n_test:]
+        print(f"Loaded pool {pool_file}: {len(pool)} total "
+              f"(train={len(train_pool)}, val={n_val}, test={n_test})")
+    else:
+        val_samples = list(pipeline.iter(config["val_batch_size"]))
 
     model.train()
     for step in range(n_steps):
-        samples = list(pipeline.iter(config["batch_size"]))
+        if train_pool is not None:
+            idx = np.random.randint(0, len(train_pool), size=config["batch_size"])
+            samples = [train_pool[i] for i in idx]
+        else:
+            samples = list(pipeline.iter(config["batch_size"]))
         batch = collate_fn(samples, tokenizer)
 
         data = batch["data"].to(device)
@@ -216,6 +237,7 @@ def trial(config, tracker):
             max_inputs=config["max_inputs"], max_ops=config["max_ops"],
             num_vars=config.get("num_vars", (1, config["max_inputs"])),
             canonicalize=config.get("canonicalize", False),
+            test_samples=test_samples,
         )
 
     results = {
@@ -276,15 +298,16 @@ def _stack_analysis(token_ids, tokenizer, opset):
 
 @torch.no_grad()
 def _inspect(model, tokenizer, opset, tracker, device, n_test, seed,
-             max_inputs, max_ops, num_vars, canonicalize):
+             max_inputs, max_ops, num_vars, canonicalize, test_samples=None):
     model.eval()
-    test_rng = np.random.default_rng(seed + 1000)
-    test_cfg = {
-        "max_inputs": max_inputs, "max_ops": max_ops,
-        "num_vars": num_vars, "canonicalize": canonicalize,
-    }
-    test_pipeline = _build_pipeline(opset, test_cfg, test_rng)
-    test_samples = list(test_pipeline.iter(n_test))
+    if test_samples is None:
+        test_rng = np.random.default_rng(seed + 1000)
+        test_cfg = {
+            "max_inputs": max_inputs, "max_ops": max_ops,
+            "num_vars": num_vars, "canonicalize": canonicalize,
+        }
+        test_pipeline = _build_pipeline(opset, test_cfg, test_rng)
+        test_samples = list(test_pipeline.iter(n_test))
 
     batch = collate_fn(test_samples, tokenizer)
     data = batch["data"].to(device)

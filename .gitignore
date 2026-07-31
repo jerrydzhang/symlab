@@ -3,6 +3,7 @@
 # PySR/SRBench run artifacts (checkpoints, hall_of_fame, etc.)
 outputs/
 results/
+pools/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
