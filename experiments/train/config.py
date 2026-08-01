@@ -34,5 +34,6 @@ backend_overrides = {
         "mem": "32G",
         "gres": "gpu:1",
         "cpus-per-task": 8,
+        "constraint": "a100",
     },
 }

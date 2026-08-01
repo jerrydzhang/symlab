@@ -2,7 +2,7 @@ Bootstrap: docker
 From: python:3.13-slim
 
 %files
-    pyproject.container.toml /build/project/pyproject.toml
+    pyproject.toml /build/project/pyproject.toml
     libs/symbolic /build/project/libs/symbolic
     models/manifest /build/project/models/manifest
     README.md /build/project/README.md
@@ -13,13 +13,7 @@ From: python:3.13-slim
 
     cd /build/project
     export UV_PROJECT_ENVIRONMENT=/opt/venv
-    # uv 0.11+ fetches its newest managed Python (3.14) by default, but torch
-    # cu118 has no cp314 wheels. Pin to the base image's system interpreter.
     export UV_PYTHON_PREFERENCE=only-system
-    # Workspace members (symbolic, manifest) are installed with --no-editable
-    # as wheels into site-packages. This ensures the build resolves correctly.
-    # At runtime, PYTHONPATH below shadows these with the mounted /work source
-    # so library code changes take effect on project sync, no rebuild needed.
     uv sync --no-dev --no-editable
     rm -rf /root/.cache /build
 
@@ -30,5 +24,4 @@ From: python:3.13-slim
     export PATH=/opt/venv/bin:$PATH
     export LANG=C.UTF-8
     export LC_ALL=C.UTF-8
-    # Library source from the mounted project, shadowing the baked wheels.
     export PYTHONPATH=/work/libs/symbolic/src:/work/models/manifest/src

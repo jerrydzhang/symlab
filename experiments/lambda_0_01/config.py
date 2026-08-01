@@ -47,5 +47,6 @@ backend_overrides = {
         "gres": "gpu:1",
         "cpus-per-task": 8,
         "exclude": "gtx18",
+        "constraint": "a100",
     },
 }

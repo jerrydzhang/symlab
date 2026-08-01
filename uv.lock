@@ -13,23 +13,12 @@ resolution-markers = [
 [manifest]
 members = [
     "baselines",
-    "canon",
-    "diagnostic",
-    "easy",
-    "inspect",
-    "inspect-l0",
     "manifest",
-    "overfit",
-    "pool-canon",
-    "pool-raw",
-    "probe",
     "pysr-model",
     "random-bfgs",
-    "scale",
     "srbench",
     "symbolic",
     "symlab",
-    "train",
 ]
 
 [[package]]
@@ -91,21 +80,6 @@ requires-dist = [
     { name = "pandas", specifier = "<3" },
     { name = "pysr", specifier = ">=1.5.10" },
     { name = "srbench", editable = "libs/srbench" },
-]
-
-[[package]]
-name = "canon"
-version = "0.0.0"
-source = { editable = "experiments/canon" }
-dependencies = [
-    { name = "manifest" },
-    { name = "torch" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "manifest", editable = "models/manifest" },
-    { name = "torch" },
 ]
 
 [[package]]
@@ -306,42 +280,12 @@ nvtx = [
 ]
 
 [[package]]
-name = "diagnostic"
-version = "0.0.0"
-source = { editable = "experiments/diagnostic" }
-dependencies = [
-    { name = "manifest" },
-    { name = "torch" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "manifest", editable = "models/manifest" },
-    { name = "torch" },
-]
-
-[[package]]
 name = "docutils"
 version = "0.23"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/39/a4/5180d9afc57e8fca05601dd652bdff19604c218814037fe90ffc7625a50a/docutils-0.23.tar.gz", hash = "sha256:746f5060322511280a1e50eb76846ed6bf2342984b2ac04dc42caa1a8d78799e", size = 2303823, upload-time = "2026-05-27T17:41:06.934Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/32/91/30151a39f7570f448ed84529390628a651d7f27c87d73c9b887f8189695e/docutils-0.23-py3-none-any.whl", hash = "sha256:25d013af9bf23bc1c7b2b093dff4208166c53a94786c9e447808335ef1185fea", size = 634701, upload-time = "2026-05-27T17:40:58.442Z" },
-]
-
-[[package]]
-name = "easy"
-version = "0.0.0"
-source = { editable = "experiments/easy" }
-dependencies = [
-    { name = "manifest" },
-    { name = "torch" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "manifest", editable = "models/manifest" },
-    { name = "torch" },
 ]
 
 [[package]]
@@ -510,36 +454,6 @@ wheels = [
 ]
 
 [[package]]
-name = "inspect"
-version = "0.0.0"
-source = { editable = "experiments/inspect" }
-dependencies = [
-    { name = "manifest" },
-    { name = "torch" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "manifest", editable = "models/manifest" },
-    { name = "torch" },
-]
-
-[[package]]
-name = "inspect-l0"
-version = "0.0.0"
-source = { editable = "experiments/inspect_l0" }
-dependencies = [
-    { name = "manifest" },
-    { name = "torch" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "manifest", editable = "models/manifest" },
-    { name = "torch" },
-]
-
-[[package]]
 name = "itsdangerous"
 version = "2.2.0"
 source = { registry = "https://pypi.org/simple" }
@@ -563,7 +477,7 @@ wheels = [
 [[package]]
 name = "jernerics"
 version = "1.1.0"
-source = { editable = "../jernerics/packages/jernerics" }
+source = { git = "https://github.com/jerrydzhang/jernerics.git?subdirectory=packages%2Fjernerics&branch=beads-test#7c9283cc4d690c28cfe013566b42dfba3601aab5" }
 dependencies = [
     { name = "cloudpickle" },
     { name = "httpx" },
@@ -577,49 +491,13 @@ dependencies = [
     { name = "typing-extensions" },
 ]
 
-[package.metadata]
-requires-dist = [
-    { name = "cloudpickle", specifier = ">=3.0.0" },
-    { name = "httpx", specifier = ">=0.28.1" },
-    { name = "numpy", specifier = ">=2.3.3" },
-    { name = "optuna", specifier = ">=4.8.0" },
-    { name = "pathspec", specifier = ">=0.12.1" },
-    { name = "pyyaml", specifier = ">=6.0.2" },
-    { name = "rich", specifier = ">=13.0.0" },
-    { name = "tomli-w", specifier = ">=1.0.0" },
-    { name = "typer", specifier = ">=0.24.1" },
-    { name = "typing-extensions", specifier = ">=4.12.0" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "hypothesis", specifier = ">=6.151.9" },
-    { name = "pre-commit", specifier = ">=4.5.1" },
-    { name = "pytest", specifier = ">=8.4.2" },
-    { name = "pytest-cov", specifier = ">=7.0.0" },
-    { name = "ruff", specifier = ">=0.13.1" },
-    { name = "ty", specifier = ">=0.0.21" },
-]
-
 [[package]]
 name = "jernerics-server"
 version = "0.1.0"
-source = { editable = "../jernerics/packages/jernerics-server" }
+source = { git = "https://github.com/jerrydzhang/jernerics.git?subdirectory=packages%2Fjernerics-server&branch=beads-test#7c9283cc4d690c28cfe013566b42dfba3601aab5" }
 dependencies = [
     { name = "fastapi" },
     { name = "uvicorn", extra = ["standard"] },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "fastapi", specifier = ">=0.136.1" },
-    { name = "uvicorn", extras = ["standard"], specifier = ">=0.46.0" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "httpx", specifier = ">=0.28.1" },
-    { name = "pytest", specifier = ">=8.4.2" },
 ]
 
 [[package]]
@@ -1121,21 +999,6 @@ wheels = [
 ]
 
 [[package]]
-name = "overfit"
-version = "0.0.0"
-source = { editable = "experiments/overfit" }
-dependencies = [
-    { name = "manifest" },
-    { name = "torch" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "manifest", editable = "models/manifest" },
-    { name = "torch" },
-]
-
-[[package]]
 name = "packaging"
 version = "26.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1209,51 +1072,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/f9/e2/3e91f31a7d2b083fe6ef3fa267035b518369d9511ffab804f839851d2779/pluggy-1.6.0.tar.gz", hash = "sha256:7dcc130b76258d33b90f61b658791dede3486c3e6bfb003ee5c9bfb396dd22f3", size = 69412, upload-time = "2025-05-15T12:30:07.975Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/54/20/4d324d65cc6d9205fabedc306948156824eb9f0ee1633355a8f7ec5c66bf/pluggy-1.6.0-py3-none-any.whl", hash = "sha256:e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746", size = 20538, upload-time = "2025-05-15T12:30:06.134Z" },
-]
-
-[[package]]
-name = "pool-canon"
-version = "0.0.0"
-source = { editable = "experiments/pool_canon" }
-dependencies = [
-    { name = "manifest" },
-    { name = "torch" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "manifest", editable = "models/manifest" },
-    { name = "torch" },
-]
-
-[[package]]
-name = "pool-raw"
-version = "0.0.0"
-source = { editable = "experiments/pool_raw" }
-dependencies = [
-    { name = "manifest" },
-    { name = "torch" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "manifest", editable = "models/manifest" },
-    { name = "torch" },
-]
-
-[[package]]
-name = "probe"
-version = "0.0.0"
-source = { editable = "experiments/probe" }
-dependencies = [
-    { name = "manifest" },
-    { name = "torch" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "manifest", editable = "models/manifest" },
-    { name = "torch" },
 ]
 
 [[package]]
@@ -1611,21 +1429,6 @@ wheels = [
 ]
 
 [[package]]
-name = "scale"
-version = "0.0.0"
-source = { editable = "experiments/scale" }
-dependencies = [
-    { name = "manifest" },
-    { name = "torch" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "manifest", editable = "models/manifest" },
-    { name = "torch" },
-]
-
-[[package]]
 name = "scikit-learn"
 version = "1.9.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1842,8 +1645,8 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "jernerics", editable = "../jernerics/packages/jernerics" },
-    { name = "jernerics-server", editable = "../jernerics/packages/jernerics-server" },
+    { name = "jernerics", git = "https://github.com/jerrydzhang/jernerics.git?subdirectory=packages%2Fjernerics&branch=beads-test" },
+    { name = "jernerics-server", git = "https://github.com/jerrydzhang/jernerics.git?subdirectory=packages%2Fjernerics-server&branch=beads-test" },
     { name = "manifest", editable = "models/manifest" },
     { name = "marimo", specifier = ">=0.23.14" },
     { name = "torch", specifier = ">=2.13.0" },
@@ -1976,21 +1779,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/dd/84/da0e5038228fa34dfd77c5026b173ed035d2a3ba31f1077590c013de2bff/tqdm-4.69.1.tar.gz", hash = "sha256:2be21080a0ce17e902c2f1baeb6a74bf551b67bbdfa4bc0109fad471d0b4cb0d", size = 793046, upload-time = "2026-07-24T14:22:02.08Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/01/50/5817619a0fca56aff06383dbfde7ae017b3ca383915b3f1e4713164273cf/tqdm-4.69.1-py3-none-any.whl", hash = "sha256:0a654b96f7a2660cceb615b56f307ec2bef96c515409014a429a561981ab52b4", size = 675452, upload-time = "2026-07-24T14:22:00.048Z" },
-]
-
-[[package]]
-name = "train"
-version = "0.0.0"
-source = { editable = "experiments/train" }
-dependencies = [
-    { name = "manifest" },
-    { name = "torch" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "manifest", editable = "models/manifest" },
-    { name = "torch" },
 ]
 
 [[package]]

@@ -46,6 +46,7 @@ backend_overrides = {
         "mem": "32G",
         "gres": "gpu:1",
         "cpus-per-task": 8,
-        "exclude": "gtx18",  # GPU2 hardware fault -> CUDA fails to init
+        "exclude": "gtx18",
+        "constraint": "a100",  # GPU2 hardware fault -> CUDA fails to init
     },
 }

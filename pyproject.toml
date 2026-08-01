@@ -14,13 +14,13 @@ dependencies = [
 package = false
 
 [tool.uv.workspace]
-members = ["libs/*", "models/*", "experiments/*"]
+members = ["libs/*", "models/*", "experiments/baselines"]
 
 [tool.uv.sources]
 symbolic = { workspace = true }
 manifest = { workspace = true }
-jernerics = { path = "../jernerics/packages/jernerics", editable = true }
-jernerics-server = { path = "../jernerics/packages/jernerics-server", editable = true }
+jernerics = { git = "https://github.com/jerrydzhang/jernerics.git", branch = "beads-test", subdirectory = "packages/jernerics" }
+jernerics-server = { git = "https://github.com/jerrydzhang/jernerics.git", branch = "beads-test", subdirectory = "packages/jernerics-server" }
 
 [tool.jernerics]
 tracking_server = "https://atlas.taile454b.ts.net"
