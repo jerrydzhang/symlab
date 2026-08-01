@@ -35,6 +35,10 @@ class OperatorNode:
 
 type ExpressionNode = InputNode | ConstantNode | OperatorNode
 
+def _cube(x):
+    return np.power(x, 3)
+
+
 # name -> sympy builder, keyed by OperatorSet op names. The default opset uses
 # exactly these names; custom opsets that reuse the names get the same mapping.
 _SYMPY_OPS: dict[str, Callable[..., sp.Expr]] = {
@@ -142,7 +146,7 @@ class OperatorSet:
                 "log": (1, np.log),
                 "sqrt": (1, np.sqrt),
                 "square": (1, np.square),
-                "cube": (1, lambda x: np.power(x, 3)),
+                "cube": (1, _cube),
                 "abs": (1, np.abs),
             }
         )

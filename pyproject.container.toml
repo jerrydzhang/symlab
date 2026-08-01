@@ -19,6 +19,13 @@
 # UV_PYTHON_PREFERENCE=only-system so uv 0.11+ uses the base image's 3.13
 # interpreter instead of fetching a managed 3.14 (torch cu118 has no cp314).
 #
+# symbolic and manifest are workspace members installed at build time with
+# --no-editable (wheels in site-packages). At runtime, PYTHONPATH in
+# container.def's %environment points at /work/libs/symbolic/src and
+# /work/models/manifest/src, which shadow the baked copies. This means library
+# code changes take effect on project sync without a container rebuild, while
+# the baked copies guarantee the container still works if /work is stale.
+#
 # Workspace narrowed to only what the experiment imports (symbolic, manifest);
 # libs/srbench and experiments/* are excluded -- the overfit trial does not use
 # them and srbench's dep tree is irrelevant here.
