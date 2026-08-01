@@ -265,7 +265,16 @@ class Expression:
         return f"Expression({str(self)})"
 
     def evaluate(self, X: np.ndarray) -> np.ndarray:
-        """Evaluate on ``X`` ``(num_samples, num_inputs)`` -> ``(num_samples,)`` predictions."""
+        """Evaluate on ``X`` ``(num_samples, num_inputs)`` -> ``(num_samples,)`` predictions.
+
+        ``X`` must have exactly ``self.num_inputs`` columns — the memory
+        layout is fixed at construction time. Mathematical edge cases (div
+        by zero, log of negative) produce ``inf``/``nan`` rather than raising.
+        """
+        if X.shape[1] != self.num_inputs:
+            raise ValueError(
+                f"X has {X.shape[1]} columns; Expression expects {self.num_inputs}"
+            )
         num_samples, num_inputs = X.shape
         node_offset = num_inputs + len(self.constants)
         memory = np.empty(

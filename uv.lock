@@ -13,11 +13,19 @@ resolution-markers = [
 [manifest]
 members = [
     "baselines",
+    "canon",
     "diagnostic",
+    "easy",
+    "inspect",
+    "inspect-l0",
     "manifest",
     "overfit",
+    "pool-canon",
+    "pool-raw",
+    "probe",
     "pysr-model",
     "random-bfgs",
+    "scale",
     "srbench",
     "symbolic",
     "symlab",
@@ -83,6 +91,21 @@ requires-dist = [
     { name = "pandas", specifier = "<3" },
     { name = "pysr", specifier = ">=1.5.10" },
     { name = "srbench", editable = "libs/srbench" },
+]
+
+[[package]]
+name = "canon"
+version = "0.0.0"
+source = { editable = "experiments/canon" }
+dependencies = [
+    { name = "manifest" },
+    { name = "torch" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "manifest", editable = "models/manifest" },
+    { name = "torch" },
 ]
 
 [[package]]
@@ -307,6 +330,21 @@ wheels = [
 ]
 
 [[package]]
+name = "easy"
+version = "0.0.0"
+source = { editable = "experiments/easy" }
+dependencies = [
+    { name = "manifest" },
+    { name = "torch" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "manifest", editable = "models/manifest" },
+    { name = "torch" },
+]
+
+[[package]]
 name = "fastapi"
 version = "0.140.0"
 source = { registry = "https://pypi.org/simple" }
@@ -469,6 +507,36 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/72/34/14ca021ce8e5dfedc35312d08ba8bf51fdd999c576889fc2c24cb97f4f10/iniconfig-2.3.0.tar.gz", hash = "sha256:c76315c77db068650d49c5b56314774a7804df16fee4402c1f19d6d15d8c4730", size = 20503, upload-time = "2025-10-18T21:55:43.219Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/cb/b1/3846dd7f199d53cb17f49cba7e651e9ce294d8497c8c150530ed11865bb8/iniconfig-2.3.0-py3-none-any.whl", hash = "sha256:f631c04d2c48c52b84d0d0549c99ff3859c98df65b3101406327ecc7d53fbf12", size = 7484, upload-time = "2025-10-18T21:55:41.639Z" },
+]
+
+[[package]]
+name = "inspect"
+version = "0.0.0"
+source = { editable = "experiments/inspect" }
+dependencies = [
+    { name = "manifest" },
+    { name = "torch" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "manifest", editable = "models/manifest" },
+    { name = "torch" },
+]
+
+[[package]]
+name = "inspect-l0"
+version = "0.0.0"
+source = { editable = "experiments/inspect_l0" }
+dependencies = [
+    { name = "manifest" },
+    { name = "torch" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "manifest", editable = "models/manifest" },
+    { name = "torch" },
 ]
 
 [[package]]
@@ -1144,6 +1212,51 @@ wheels = [
 ]
 
 [[package]]
+name = "pool-canon"
+version = "0.0.0"
+source = { editable = "experiments/pool_canon" }
+dependencies = [
+    { name = "manifest" },
+    { name = "torch" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "manifest", editable = "models/manifest" },
+    { name = "torch" },
+]
+
+[[package]]
+name = "pool-raw"
+version = "0.0.0"
+source = { editable = "experiments/pool_raw" }
+dependencies = [
+    { name = "manifest" },
+    { name = "torch" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "manifest", editable = "models/manifest" },
+    { name = "torch" },
+]
+
+[[package]]
+name = "probe"
+version = "0.0.0"
+source = { editable = "experiments/probe" }
+dependencies = [
+    { name = "manifest" },
+    { name = "torch" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "manifest", editable = "models/manifest" },
+    { name = "torch" },
+]
+
+[[package]]
 name = "psutil"
 version = "7.2.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1495,6 +1608,21 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/b2/1d/1b2ef7bcde851c78d7f17f1cca13fd6dc695fc4b3d6197941e72cae5b132/ruff-0.16.0-py3-none-win32.whl", hash = "sha256:7fab76fa065c873f41ff744347c6e77bcc3dfec4bcc754dc26b63d23c0f7f5fb", size = 10785885, upload-time = "2026-07-23T19:11:23.947Z" },
     { url = "https://files.pythonhosted.org/packages/b2/a3/d5e4ef7a56be3f928ffb90b94c25ba7d3cb9c7fe0736aeaaedf361770712/ruff-0.16.0-py3-none-win_amd64.whl", hash = "sha256:429c117f022bf481fabd9d551e7a3952b24c65e6ef44337ea09d90bebef14472", size = 11923141, upload-time = "2026-07-23T19:11:26.409Z" },
     { url = "https://files.pythonhosted.org/packages/cb/9a/8415f2657cbe200f41a4531ccededf135505a92d4a012229121f885b26f9/ruff-0.16.0-py3-none-win_arm64.whl", hash = "sha256:14296fedcd2705c77ab8235439278bbb38f285cf7da5528b00b3e330c3d4872d", size = 11273407, upload-time = "2026-07-23T19:11:28.705Z" },
+]
+
+[[package]]
+name = "scale"
+version = "0.0.0"
+source = { editable = "experiments/scale" }
+dependencies = [
+    { name = "manifest" },
+    { name = "torch" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "manifest", editable = "models/manifest" },
+    { name = "torch" },
 ]
 
 [[package]]

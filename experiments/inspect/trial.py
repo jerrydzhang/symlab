@@ -164,7 +164,7 @@ def trial(config, tracker):
             )
 
         if step % config["val_every"] == 0 or step == n_steps - 1:
-            _evaluate(model, val_samples, tokenizer, tracker, step, device)
+            _evaluate(model, val_samples, tokenizer, config["max_inputs"], tracker, step, device)
 
     # Save checkpoint.
     ckpt_dir = tempfile.mkdtemp()
@@ -290,12 +290,17 @@ def _inspect(model, tokenizer, opset, tracker, device, n_test, seed,
         valid = expr is not None
         r2_val = None
         if valid:
-            try:
-                y_pred = expr.evaluate(sample.X)
+            n = sample.X.shape[1]
+            if n < max_inputs:
+                X_eval = np.column_stack([sample.X, np.zeros((sample.X.shape[0], max_inputs - n))])
+            else:
+                X_eval = sample.X
+            y_pred = expr.evaluate(X_eval)
+            if np.isfinite(y_pred).all():
                 ss_res = float(np.mean((sample.y - y_pred) ** 2))
                 ss_tot = float(np.var(sample.y))
                 r2_val = 1.0 - ss_res / max(ss_tot, 1e-9)
-            except Exception:
+            else:
                 valid = False
                 category = "eval_error"
 
@@ -383,7 +388,7 @@ def _inspect(model, tokenizer, opset, tracker, device, n_test, seed,
 
 
 @torch.no_grad()
-def _evaluate(model, samples, tokenizer, tracker, step, device):
+def _evaluate(model, samples, tokenizer, max_inputs, tracker, step, device):
     model.eval()
     batch = collate_fn(samples, tokenizer)
 
@@ -414,15 +419,19 @@ def _evaluate(model, samples, tokenizer, tracker, step, device):
             n_invalid += 1
             continue
 
-        try:
-            expr.evaluate(sample.X)
-        except Exception:
+        n = sample.X.shape[1]
+        if n < max_inputs:
+            X = np.column_stack([sample.X, np.zeros((sample.X.shape[0], max_inputs - n))])
+        else:
+            X = sample.X
+        y_pred = expr.evaluate(X)
+        if not np.isfinite(y_pred).all():
             n_invalid += 1
             continue
 
         n_valid += 1
         expressions.append(expr)
-        Xs.append(sample.X)
+        Xs.append(X)
         ys.append(sample.y)
 
     if expressions:

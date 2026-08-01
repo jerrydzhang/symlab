@@ -255,15 +255,6 @@ def trial(config, tracker):
     return {"final_loss": loss.item(), "n_params": n_params, **summary}
 
 
-def _pad_x(X, max_inputs):
-    # Pad X to max_inputs columns (zeros for unused vars). The tokenizer
-    # decodes expressions with num_inputs == max_inputs even when the ground
-    # truth used fewer vars, so evaluation requires a full-width X.
-    n = X.shape[1]
-    if n >= max_inputs:
-        return X
-    return np.column_stack([X, np.zeros((X.shape[0], max_inputs - n))])
-
 def _token_kind(token_id, tokenizer, opset):
     if token_id in (PAD_ID, BOS_ID, EOS_ID):
         return "special", 0
@@ -354,12 +345,17 @@ def _inspect(model, tokenizer, opset, tracker, device, n_test, seed,
         valid = expr is not None
         r2_val = None
         if valid:
-            try:
-                y_pred = expr.evaluate(_pad_x(sample.X, tokenizer.max_inputs))
+            n = sample.X.shape[1]
+            if n < tokenizer.max_inputs:
+                X_eval = np.column_stack([sample.X, np.zeros((sample.X.shape[0], tokenizer.max_inputs - n))])
+            else:
+                X_eval = sample.X
+            y_pred = expr.evaluate(X_eval)
+            if np.isfinite(y_pred).all():
                 ss_res = float(np.mean((sample.y - y_pred) ** 2))
                 ss_tot = float(np.var(sample.y))
                 r2_val = 1.0 - ss_res / max(ss_tot, 1e-9)
-            except Exception:
+            else:
                 valid = False
                 category = "eval_error"
 
@@ -476,10 +472,13 @@ def _evaluate(model, samples, tokenizer, tracker, step, device):
             n_invalid += 1
             continue
 
-        try:
-            X_eval = _pad_x(sample.X, tokenizer.max_inputs)
-            expr.evaluate(X_eval)
-        except Exception:
+        n = sample.X.shape[1]
+        if n < tokenizer.max_inputs:
+            X_eval = np.column_stack([sample.X, np.zeros((sample.X.shape[0], tokenizer.max_inputs - n))])
+        else:
+            X_eval = sample.X
+        y_pred = expr.evaluate(X_eval)
+        if not np.isfinite(y_pred).all():
             n_invalid += 1
             continue
 
