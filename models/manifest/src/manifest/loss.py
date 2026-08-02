@@ -42,10 +42,10 @@ def decomposed_loss(
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """Return (ce_loss, mse_loss) separately for logging.
 
-    Constant targets are log-transformed (sign-preserving log1p) before
-    MSE so the loss operates in a bounded range regardless of the real
-    constant magnitude. Predictions are inverse-transformed at generation
-    time via inverse_transform_constant.
+    The numeric head predicts log-transformed constants (sign-preserving
+    log1p). The num_targets arriving here are ALREADY log-transformed by
+    collate_fn, so MSE compares prediction to target directly. At generation
+    time, predictions are inverse-transformed via inverse_transform_constant.
     """
     logits = logits.flatten(0, 1)
     token_targets = token_targets.flatten(0, 1)
@@ -56,7 +56,7 @@ def decomposed_loss(
 
     num_mask = token_targets == num_index
     num_preds = num_preds[num_mask]
-    num_targets = transform_constant(num_targets[num_mask])
+    num_targets = num_targets[num_mask]  # already log-transformed in collate_fn
     if num_preds.numel() == 0:
         mse_loss = torch.tensor(0.0, device=logits.device)
     else:

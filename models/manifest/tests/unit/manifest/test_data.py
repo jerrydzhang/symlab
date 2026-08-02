@@ -96,12 +96,16 @@ class TestPadding:
         num_values = batch["num_values"]
         # padded slots carry the placeholder 1.0
         assert torch.all(num_values[~batch["token_mask"]] == 1.0)
-        # the constant 2.0 rides on its <NUM> slot in sample 1
+        # the constant 2.0 rides on its <NUM> slot in sample 1 — log-transformed
+        # by collate_fn so the model sees log-scale constants consistently.
         tok = _tok()
         row1_tokens = batch["tokens"][1]
         num_idx = (row1_tokens == tok.vocab["<NUM>"]).nonzero().flatten()
         assert num_idx.numel() == 1
-        assert num_values[1, num_idx[0].item()].item() == 2.0
+        from manifest.loss import transform_constant
+
+        expected = transform_constant(torch.tensor(2.0)).item()
+        assert num_values[1, num_idx[0].item()].item() == expected
 
 
 class TestMaskDerivation:

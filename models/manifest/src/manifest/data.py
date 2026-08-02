@@ -4,7 +4,8 @@ import numpy as np
 import torch
 from symbolic import Evaluated
 
-from manifest.tokenizer import XValsTokenizer, PAD_ID
+from manifest.tokenizer import XValsTokenizer, PAD_ID, NUM_ID
+from manifest.loss import transform_constant
 
 from torch.nn.utils.rnn import pad_sequence
 
@@ -52,8 +53,8 @@ def collate_fn(samples: list[Evaluated], tokenizer: XValsTokenizer) -> SRBatch:
         combined_data = np.column_stack((X_norm, y_norm))
         data_list.append(torch.from_numpy(combined_data).float())
 
-        # Normalize constant values: the num_head predicts normalized constants.
-        # Real values are recovered at inference via the stats token.
+        # Stats vector holds X/y normalization parameters (mean, std) so the
+        # model can recover real-scale values at inference.
         stats = np.concatenate([X_mean, X_std, [y_mean, y_std]])
         stats_list.append(torch.from_numpy(stats).float())
 
@@ -62,6 +63,13 @@ def collate_fn(samples: list[Evaluated], tokenizer: XValsTokenizer) -> SRBatch:
         num_values_list, batch_first=True, padding_value=1.0
     )
     token_mask = padded_tokens != PAD_ID
+
+    # Transform constant values to log scale at NUM positions only.
+    # Non-NUM positions (operators, inputs, BOS, EOS, PAD) keep value 1.0,
+    # which is the identity for the embedding multiplication. The numeric head
+    # now sees log-scale constants consistently in both input and loss target.
+    num_positions = padded_tokens == NUM_ID
+    padded_num_values[num_positions] = transform_constant(padded_num_values[num_positions])
 
     data_lens = torch.tensor([d.shape[0] for d in data_list])
     max_n = int(data_lens.max().item())
