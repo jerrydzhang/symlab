@@ -47,7 +47,7 @@ max_retries = 2
 # priority-gpu via backend_overrides in experiments/overfit/config.py.
 partition = "priority"
 time = "0:30:00"
-mem = "16G"
+mem = "32G"
 cpus = 4
 
 [tool.jernerics.backends.hpc.apptainer]
