@@ -7,11 +7,16 @@ dependencies = [
     "jernerics-server",
     "manifest",
     "marimo>=0.23.14",
-    "torch>=2.13.0",
+    "torch>=2.11.0",
 ]
 
 [tool.uv]
 package = false
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
 
 [tool.uv.workspace]
 members = ["libs/*", "models/*", "experiments/baselines"]
@@ -21,6 +26,7 @@ symbolic = { workspace = true }
 manifest = { workspace = true }
 jernerics = { git = "https://github.com/jerrydzhang/jernerics.git", branch = "beads-test", subdirectory = "packages/jernerics" }
 jernerics-server = { git = "https://github.com/jerrydzhang/jernerics.git", branch = "beads-test", subdirectory = "packages/jernerics-server" }
+torch = { index = "pytorch-cu128" }
 
 [tool.jernerics]
 tracking_server = "https://atlas.taile454b.ts.net"
