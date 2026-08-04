@@ -242,35 +242,27 @@ class TestDecoderBlock:
 class TestDataEncoder:
     def test_output_shape(self):
         enc = DataEncoder(INPUT_DIM, D_MODEL, N_HEADS, D_FF, n_layers=2, dropout=0.0)
-        stats = torch.randn(2, 2 * INPUT_DIM)
-        # the stats token is prepended, adding one position
-        assert enc(torch.randn(2, 10, INPUT_DIM), stats=stats).shape == (
-            2,
-            11,
-            D_MODEL,
-        )
+        assert enc(torch.randn(2, 10, INPUT_DIM)).shape == (2, 10, D_MODEL)
 
     def test_accepts_data_mask(self):
         enc = DataEncoder(INPUT_DIM, D_MODEL, N_HEADS, D_FF, n_layers=2, dropout=0.0)
         mask = torch.ones(2, 10, dtype=torch.bool)
         mask[:, -3:] = False
-        stats = torch.randn(2, 2 * INPUT_DIM)
-        out = enc(torch.randn(2, 10, INPUT_DIM), data_mask=mask, stats=stats)
+        out = enc(torch.randn(2, 10, INPUT_DIM), data_mask=mask)
         assert torch.isfinite(out).all()
 
     def test_gradient_flows(self):
         enc = DataEncoder(INPUT_DIM, D_MODEL, N_HEADS, D_FF, n_layers=2, dropout=0.0)
-        stats = torch.randn(2, 2 * INPUT_DIM)
-        enc(torch.randn(2, 10, INPUT_DIM), stats=stats).sum().backward()
+        enc(torch.randn(2, 10, INPUT_DIM)).sum().backward()
         assert enc.data_proj.weight.grad.abs().sum() > 0
-        assert enc.stats_proj.weight.grad.abs().sum() > 0
         assert enc.blocks[0].self_attn.packed_qkv_proj.weight.grad.abs().sum() > 0
 
 
 class TestTokenDecoder:
     def _dec(self, dropout=0.0):
         return TokenDecoder(
-            VOCAB, MAX_SEQ_LEN, D_MODEL, N_HEADS, D_FF, n_layers=2, dropout=dropout
+            VOCAB, MAX_SEQ_LEN, D_MODEL, N_HEADS, D_FF, n_layers=2,
+            stats_dim=2 * INPUT_DIM, dropout=dropout,
         )
 
     def test_output_shapes(self):
@@ -278,7 +270,8 @@ class TestTokenDecoder:
         B, L = 2, 8
         tokens = torch.randint(0, VOCAB, (B, L))
         enc = torch.randn(B, 5, D_MODEL)
-        logits, num_preds = dec(tokens, torch.ones(B, L), enc)
+        stats = torch.randn(B, 2 * INPUT_DIM)
+        logits, num_preds = dec(tokens, torch.ones(B, L), enc, stats)
         assert logits.shape == (B, L, VOCAB)
         assert num_preds.shape == (B, L, 1)
 
@@ -291,10 +284,11 @@ class TestTokenDecoder:
         B, L = 2, 8
         tokens = torch.randint(0, VOCAB, (B, L))
         enc = torch.randn(B, 5, D_MODEL)
-        logits_a, _ = dec(tokens, torch.ones(B, L), enc)
+        stats = torch.randn(B, 2 * INPUT_DIM)
+        logits_a, _ = dec(tokens, torch.ones(B, L), enc, stats)
         nv = torch.ones(B, L)
         nv[:, L // 2] = 5.0
-        logits_b, _ = dec(tokens, nv, enc)
+        logits_b, _ = dec(tokens, nv, enc, stats)
         assert not torch.allclose(logits_a, logits_b)
 
     def test_gradient_flows_to_all_heads(self):
@@ -302,7 +296,8 @@ class TestTokenDecoder:
         B, L = 2, 8
         tokens = torch.randint(0, VOCAB, (B, L))
         enc = torch.randn(B, 5, D_MODEL)
-        logits, num_preds = dec(tokens, torch.ones(B, L), enc)
+        stats = torch.randn(B, 2 * INPUT_DIM)
+        logits, num_preds = dec(tokens, torch.ones(B, L), enc, stats)
         (logits.sum() + num_preds.sum()).backward()
         assert dec.token_emb.weight.grad.abs().sum() > 0
         assert dec.pos_emb.weight.grad.abs().sum() > 0
@@ -314,7 +309,7 @@ class TestTokenDecoder:
         L = MAX_SEQ_LEN + 1
         tokens = torch.randint(0, VOCAB, (1, L))
         with pytest.raises(IndexError):
-            dec(tokens, torch.ones(1, L), torch.randn(1, 3, D_MODEL))
+            dec(tokens, torch.ones(1, L), torch.randn(1, 3, D_MODEL), torch.randn(1, 2 * INPUT_DIM))
 
 
 class TestTransformerModel:
@@ -353,7 +348,6 @@ class TestTransformerModel:
         (logits.sum() + num_preds.sum()).backward()
         checks = {
             "encoder.data_proj": m.encoder.data_proj.weight,
-            "encoder.stats_proj": m.encoder.stats_proj.weight,
             "encoder.block": m.encoder.blocks[0].self_attn.packed_qkv_proj.weight,
             "encoder.final_norm": m.encoder.final_norm.weight,
             "decoder.token_emb": m.decoder.token_emb.weight,
