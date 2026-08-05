@@ -14,7 +14,7 @@ class _Node:
     """Mutable recursive tree node during skeleton generation (leaves: ``op is None``)."""
 
     op: str | None
-    kids: list["_Node"]
+    children: list["_Node"]
     const: bool = False
     var: int = 0
 
@@ -72,19 +72,19 @@ class RandomBinaryTree:
 
     def _grow(self, ops: int) -> _Node:
         if ops == 0:
-            return _Node(op=None, kids=[])
+            return _Node(op=None, children=[])
 
         opname = self._sample_op()
         arity, _ = self.opset[opname]
 
         if arity == 1:
-            return _Node(op=opname, kids=[self._grow(ops - 1)])
+            return _Node(op=opname, children=[self._grow(ops - 1)])
 
         remaining = ops - 1
         left_ops = int(self.rng.integers(0, remaining + 1))
         return _Node(
             op=opname,
-            kids=[self._grow(left_ops), self._grow(remaining - left_ops)],
+            children=[self._grow(left_ops), self._grow(remaining - left_ops)],
         )
 
     def _label_leaves(self, root: _Node, n_vars: int) -> None:
@@ -106,7 +106,7 @@ class RandomBinaryTree:
         if node.op is None:
             return [node]
         out: list[_Node] = []
-        for kid in node.kids:
+        for kid in node.children:
             out.extend(RandomBinaryTree._leaves(kid))
         return out
 
@@ -118,8 +118,8 @@ class RandomBinaryTree:
                 if n.const:
                     return builder.constant(0.0)
                 return builder.input(n.var)
-            kids = [emit(kid) for kid in n.kids]
-            return builder.apply(n.op, *kids)
+            children = [emit(kid) for kid in n.children]
+            return builder.apply(n.op, *children)
 
         return builder.build(emit(node))
 
