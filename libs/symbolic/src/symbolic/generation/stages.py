@@ -94,9 +94,6 @@ class RandomBinaryTree:
             return
 
         is_const = [bool(self.rng.random() < self.p_constant) for _ in range(n)]
-        # Guarantee at least one placeholder constant per tree.
-        if not any(is_const):
-            is_const[int(self.rng.integers(0, n))] = True
 
         for node, const in zip(leaves, is_const, strict=True):
             if const:
