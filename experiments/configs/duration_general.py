@@ -1,10 +1,10 @@
-# Same as duration.py but on general-gpu partition
+# Duration sweep on general-gpu
 
-n_trials = 1
+n_trials = 4
 
 base = {
     "seed": 42,
-    "tag": "duration",
+    "tag": "duration_gen",
     "opset": "default",
     "max_inputs": 2,
     "max_ops": 3,
@@ -22,9 +22,9 @@ base = {
     "n_test": 200,
 }
 
-search_space = {
-    "n_steps": [10000, 50000, 100000, 200000],
-}
+def search_space(trial):
+    steps = trial.suggest_categorical("n_steps", [10000, 50000, 100000, 200000])
+    return {"n_steps": steps}
 
 objective = lambda results: results["final_loss"]
 direction = "minimize"

@@ -2,7 +2,7 @@
 # Tests whether metrics plateau with more data or keep improving.
 # 50k steps to ensure convergence at each scale.
 
-n_trials = 1
+n_trials = 5
 
 base = {
     "seed": 42,
@@ -23,15 +23,17 @@ base = {
     "n_test": 200,
 }
 
-search_space = {
-    "pool_file": [
-        "pools/scale_3200.pkl",
-        "pools/scale_6400.pkl",
-        "pools/canon_pool_large.pkl",       # 12800
-        "pools/scale_25600.pkl",
-        "pools/scale_51200.pkl",
-    ],
-}
+POOLS = [
+    "pools/scale_3200.pkl",
+    "pools/scale_6400.pkl",
+    "pools/canon_pool_large.pkl",
+    "pools/scale_25600.pkl",
+    "pools/scale_51200.pkl",
+]
+
+def search_space(trial):
+    idx = trial.suggest_int("pool_idx", 0, len(POOLS) - 1)
+    return {"pool_file": POOLS[idx]}
 
 objective = lambda results: results["final_loss"]
 direction = "minimize"

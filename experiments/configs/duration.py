@@ -1,7 +1,7 @@
 # Training duration sweep: same pool, different step counts.
 # Does the model plateau at 10k, or keep improving at 100k+?
 
-n_trials = 1
+n_trials = 4
 
 base = {
     "seed": 42,
@@ -23,9 +23,9 @@ base = {
     "n_test": 200,
 }
 
-search_space = {
-    "n_steps": [10000, 50000, 100000, 200000],
-}
+def search_space(trial):
+    steps = trial.suggest_categorical("n_steps", [10000, 50000, 100000, 200000])
+    return {"n_steps": steps}
 
 objective = lambda results: results["final_loss"]
 direction = "minimize"

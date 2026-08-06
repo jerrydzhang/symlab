@@ -1,10 +1,10 @@
-# Same as lambda_sweep.py but on general-gpu partition
+# Lambda sweep on general-gpu
 
-n_trials = 1
+n_trials = 4
 
 base = {
     "seed": 42,
-    "tag": "lambda",
+    "tag": "lambda_gen",
     "opset": "default",
     "max_inputs": 2,
     "max_ops": 3,
@@ -21,9 +21,9 @@ base = {
     "n_test": 200,
 }
 
-search_space = {
-    "lambda_": [0.0, 0.001, 0.01, 0.1],
-}
+def search_space(trial):
+    lam = trial.suggest_categorical("lambda_", [0.0, 0.001, 0.01, 0.1])
+    return {"lambda_": lam}
 
 objective = lambda results: results["final_loss"]
 direction = "minimize"

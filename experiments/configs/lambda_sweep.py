@@ -1,7 +1,6 @@
 # Lambda sweep on unbiased pool.
-# The old sweep was poisoned (normalization bug). Re-run with clean setup.
 
-n_trials = 1
+n_trials = 4
 
 base = {
     "seed": 42,
@@ -22,9 +21,9 @@ base = {
     "n_test": 200,
 }
 
-search_space = {
-    "lambda_": [0.0, 0.001, 0.01, 0.1],
-}
+def search_space(trial):
+    lam = trial.suggest_categorical("lambda_", [0.0, 0.001, 0.01, 0.1])
+    return {"lambda_": lam}
 
 objective = lambda results: results["final_loss"]
 direction = "minimize"

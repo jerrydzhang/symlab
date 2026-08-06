@@ -1,7 +1,6 @@
 # Multi-seed variance check: coupled vs skeleton with 3 seeds.
-# Are the ~2% gaps within noise?
 
-n_trials = 1
+n_trials = 6
 
 base = {
     "opset": "default",
@@ -20,12 +19,15 @@ base = {
     "n_test": 200,
 }
 
-search_space = {
-    "seed": [42, 123, 456],
-    "skeleton_mode": [False, True],
-    "tag": ["coupled_s42", "coupled_s123", "coupled_s456",
-            "skeleton_s42", "skeleton_s123", "skeleton_s456"],
-}
+SEEDS = [42, 123, 456]
+TAGS = ["coupled_s42", "coupled_s123", "coupled_s456",
+        "skeleton_s42", "skeleton_s123", "skeleton_s456"]
+
+def search_space(trial):
+    seed = trial.suggest_categorical("seed", SEEDS)
+    skeleton = trial.suggest_categorical("skeleton_mode", [False, True])
+    tag = ("skeleton" if skeleton else "coupled") + f"_s{seed}"
+    return {"seed": seed, "skeleton_mode": skeleton, "tag": tag}
 
 objective = lambda results: results["final_loss"]
 direction = "minimize"
