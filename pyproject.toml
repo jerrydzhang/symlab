@@ -7,6 +7,7 @@ dependencies = [
     "jernerics-server",
     "manifest",
     "marimo>=0.23.14",
+    "matplotlib>=3.11.1",
     "torch>=2.11.0",
 ]
 
@@ -43,8 +44,8 @@ grace_period_s = 60
 max_retries = 2
 
 [tool.jernerics.backends.hpc.slurm]
-# Build job runs on the CPU priority partition. The trial sweep overrides to
-# priority-gpu via backend_overrides in experiments/overfit/config.py.
+# Build job runs on the CPU priority partition. Trial sweeps override to a GPU
+# partition via backend_overrides in their experiments/configs/*.py config.
 partition = "priority"
 time = "0:30:00"
 mem = "32G"
