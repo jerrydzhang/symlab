@@ -71,8 +71,9 @@ def _(query, refresh, study_selector):
             _res = query(
                 f"SELECT study_name, key, step, scalar_val "
                 f"FROM tracked_values WHERE study_name IN ({_names}) "
-                f"AND key IN ('loss','ce_loss','mse_loss','token_acc',"
-                f"'grad_norm','val_r2','val_valid_rate','structure_ce') "
+                f"AND key IN ('loss','ce_loss','structure_ce','mse_loss','token_acc',"
+                f"'grad_norm','lr','val_r2','val_valid_rate',"
+                f"'val_loss','val_ce','val_structure_ce','val_mse') "
                 f"ORDER BY study_name, key, step"
             )
             for _r in _res["rows"]:
@@ -90,34 +91,72 @@ def _(query, refresh, study_selector):
 
 @app.cell
 def _(mdata, mo, plt, sel):
-    METRICS = ["loss", "ce_loss", "structure_ce", "mse_loss", "token_acc", "val_r2"]
-    fig, axes = plt.subplots(2, 3, figsize=(18, 9))
-    af = axes.flatten()
-    for _i in range(6):
-        metric = METRICS[_i]
-        ax = af[_i]
-        has = False
-        for _k, _v in mdata.items():
-            if _k[1] != metric or not _v:
-                continue
-            _v.sort()
-            ax.plot([p[0] for p in _v], [p[1] for p in _v],
-                    label=_k[0].split("_")[-1], alpha=0.8, linewidth=1.2)
-            has = True
-        ax.set_title(metric, fontsize=11)
-        ax.set_xlabel("step")
-        ax.grid(True, alpha=0.3)
-        if has:
-            ax.legend(fontsize=7)
-    plt.tight_layout()
-    mo.mpl.interactive(fig) if sel and mdata else mo.md("No studies selected or no data yet.")
+    TRAIN_METRICS = ["loss", "ce_loss", "structure_ce", "mse_loss", "token_acc", "lr"]
+
+    if not sel or not mdata:
+        _output = mo.md("No studies selected or no data yet.")
+    else:
+        fig, axes = plt.subplots(2, 3, figsize=(18, 4.5))
+        af = axes.flatten()
+        for _i in range(6):
+            metric = TRAIN_METRICS[_i]
+            ax = af[_i]
+            has = False
+            for _k, _v in mdata.items():
+                if _k[1] != metric or not _v:
+                    continue
+                _v.sort()
+                ax.plot([p[0] for p in _v], [p[1] for p in _v],
+                        label=_k[0].split("_")[-1], alpha=0.8, linewidth=1.2)
+                has = True
+            ax.set_title(metric, fontsize=11)
+            ax.set_xlabel("step")
+            ax.grid(True, alpha=0.3)
+            if has:
+                ax.legend(fontsize=7)
+        plt.tight_layout()
+        _output = mo.mpl.interactive(fig)
+
+    _output
+    return
+
+
+@app.cell
+def _(mdata, mo, plt, sel):
+    VAL_METRICS = ["val_loss", "val_ce", "val_structure_ce", "val_mse", "val_r2", "val_valid_rate"]
+
+    if not sel or not mdata:
+        _output = mo.md("No validation data yet.")
+    else:
+        fig2, axes2 = plt.subplots(2, 3, figsize=(18, 4.5))
+        af2 = axes2.flatten()
+        for _i in range(6):
+            _metric = VAL_METRICS[_i]
+            _ax = af2[_i]
+            _has = False
+            for _k2, _v2 in mdata.items():
+                if _k2[1] != _metric or not _v2:
+                    continue
+                _v2.sort()
+                _ax.plot([p[0] for p in _v2], [p[1] for p in _v2],
+                        label=_k2[0].split("_")[-1], alpha=0.8, linewidth=1.2)
+                _has = True
+            _ax.set_title(_metric, fontsize=11)
+            _ax.set_xlabel("step")
+            _ax.grid(True, alpha=0.3)
+            if _has:
+                _ax.legend(fontsize=7)
+        plt.tight_layout()
+        _output = mo.mpl.interactive(fig2)
+
+    _output
     return
 
 
 @app.cell
 def _(mdata, mo, sel):
     if not sel or not mdata:
-        mo.md("")
+        _output = mo.md("")
     else:
         rows = []
         seen = set()
@@ -131,7 +170,9 @@ def _(mdata, mo, sel):
                 for _r in rows:
                     if _r["study"] == _short:
                         _r[_k[1]] = round(_lv, 4) if isinstance(_lv, float) else _lv
-        mo.ui.table(rows)
+        _output = mo.ui.table(rows)
+
+    _output
     return
 
 
@@ -158,6 +199,7 @@ def _(mo, query):
             pivot[_sn][_r[1]] = float(_r[2])
         except (ValueError, TypeError):
             pass
+
     mo.ui.table([{"study": k, **v} for k, v in pivot.items()]) if pivot else mo.md("No inspection data.")
     return
 

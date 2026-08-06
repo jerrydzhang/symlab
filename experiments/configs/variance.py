@@ -38,6 +38,6 @@ backend_overrides = {
         "account": "qiy18011", "time": "2:00:00",
         "mem": "32G", "gres": "gpu:1", "cpus-per-task": 8,
         "constraint": "a100",
-        "exclude": "gpu14,gpu24,gpu26,gtx18",
+        "exclude": "gpu14,gpu22,gpu24,gpu26,gtx18",
     },
 }
