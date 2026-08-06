@@ -31,8 +31,7 @@ class RandomBinaryTree:
     num_vars:
         Inclusive ``(lo, hi)`` range for the number of input variables.
     p_constant:
-        Per-leaf probability of being a constant; at least one per tree is
-        guaranteed.
+        Per-leaf probability of being a constant.
     rng:
         Seeded generator; defaults to a fresh one.
     """

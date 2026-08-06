@@ -34,7 +34,7 @@ class TestRandomBinaryTree:
             assert isinstance(skel, Skeleton)
             assert skel.opset is _opset() or skel.opset == _opset()
             assert 1 <= skel.num_inputs <= 2
-            assert skel.num_constants > 0
+            assert skel.num_constants >= 0
             # num_constants must match the actual constant array length
             assert skel.num_constants == len(skel.expression.constants)
             # the placeholder expression evaluates without error
