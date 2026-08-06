@@ -529,6 +529,41 @@ def _evaluate(model, samples, tokenizer, tracker, step, device):
     stats = batch["stats"].to(device)
     data_mask = batch["data_mask"].to(device)
 
+    # Teacher-forced validation loss
+    tokens = batch["tokens"].to(device)
+    num_values = batch["num_values"].to(device)
+    token_mask = batch["token_mask"].to(device)
+    input_tokens = tokens[:, :-1]
+    input_nums = num_values[:, :-1]
+    target_tokens = tokens[:, 1:]
+    target_nums = num_values[:, 1:]
+    target_mask = token_mask[:, :-1]
+
+    logits, num_preds = model(
+        data, input_tokens, input_nums,
+        data_mask=data_mask, token_mask=target_mask, stats=stats,
+    )
+    val_ce, val_mse = decomposed_loss(
+        logits, num_preds, target_tokens, target_nums,
+    )
+
+    # Structure-only CE (exclude NUM tokens)
+    structure_mask = (target_tokens != PAD_ID) & (target_tokens != NUM_ID)
+    if structure_mask.any():
+        per_pos_ce = F.cross_entropy(
+            logits.flatten(0, 1), target_tokens.flatten(0, 1),
+            ignore_index=PAD_ID, reduction="none",
+        ).reshape_as(target_tokens)
+        val_structure_ce = per_pos_ce[structure_mask].mean().item()
+    else:
+        val_structure_ce = float("nan")
+
+    tracker.log_value("val_loss", val_ce.item() + val_mse.item(), step=step)
+    tracker.log_value("val_ce", val_ce.item(), step=step)
+    tracker.log_value("val_structure_ce", val_structure_ce, step=step)
+    tracker.log_value("val_mse", val_mse.item(), step=step)
+
+    # Generation metrics
     gen_tokens, gen_nums = model.generate(data, data_mask=data_mask, stats=stats)
 
     expressions = []
