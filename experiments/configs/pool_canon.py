@@ -41,7 +41,6 @@ direction = "minimize"
 backend_overrides = {
     "hpc": {
         "partition": "general-gpu",
-        "qos": "general-gpu",
         "account": "qiy18011",
         "time": "1:00:00",
         "mem": "32G",
