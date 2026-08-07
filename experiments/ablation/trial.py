@@ -417,6 +417,8 @@ def _inspect(model, tokenizer, opset, tracker, device, n_test, seed,
                             fitted_r2 = 1.0 - ss_res_f / max(ss_tot, 1e-9)
                     except Exception:
                         pass
+                else:
+                    fitted_r2 = r2_val
             else:
                 valid = False
                 category = "eval_error"
