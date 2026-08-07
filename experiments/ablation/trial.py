@@ -84,6 +84,11 @@ def trial(config, tracker):
     torch.manual_seed(config["seed"])
     np.random.seed(config["seed"])
     tag = config.get("tag", "run")
+    config_index = config.get("config_index")
+    if config_index is not None:
+        out_tag = f"{tag}_t{config_index}"
+    else:
+        out_tag = tag
     metrics_log = []
 
     if config.get("opset", "comprehensive") == "default":
@@ -271,7 +276,7 @@ def trial(config, tracker):
     # login node) so analysis does not depend on the tracking server.
     out_dir = os.path.join("results")
     os.makedirs(out_dir, exist_ok=True)
-    torch.save(model.state_dict(), os.path.join(out_dir, f"{tag}.pt"))
+    torch.save(model.state_dict(), os.path.join(out_dir, f"{out_tag}.pt"))
 
     report = None
     if config.get("inspect", True):
@@ -291,9 +296,9 @@ def trial(config, tracker):
         "summary": report["summary"] if report else None,
         "rows": report["rows"] if report else None,
     }
-    with open(os.path.join(out_dir, f"{tag}.json"), "w") as f:
+    with open(os.path.join(out_dir, f"{out_tag}.json"), "w") as f:
         json.dump(results, f, indent=2, default=str)
-    print(f"RESULTS WRITTEN: {os.path.join(out_dir, tag + '.json')}")
+    print(f"RESULTS WRITTEN: {os.path.join(out_dir, out_tag + '.json')}")
 
     summary = report["summary"] if report else {}
     return {"final_loss": loss.item(), "n_params": n_params, **summary}
