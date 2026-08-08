@@ -54,6 +54,14 @@ cpus = 4
 [tool.jernerics.backends.hpc.apptainer]
 build_dir = "/dev/shm/build/{project_name}"
 
+[tool.jernerics.backends.hpc.interactive]
+partition = "general-gpu"
+constraint = "a100"
+time = "4:00:00"
+gpus = 1
+mem = "32G"
+cpus = 8
+
 [dependency-groups]
 dev = [
     "pytest>=9.1.1",
