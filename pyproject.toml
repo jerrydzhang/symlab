@@ -25,8 +25,8 @@ members = ["libs/*", "models/*", "experiments/baselines"]
 [tool.uv.sources]
 symbolic = { workspace = true }
 manifest = { workspace = true }
-jernerics = { git = "https://github.com/jerrydzhang/jernerics.git", branch = "beads-test", subdirectory = "packages/jernerics" }
-jernerics-server = { git = "https://github.com/jerrydzhang/jernerics.git", branch = "beads-test", subdirectory = "packages/jernerics-server" }
+jernerics = { git = "https://github.com/jerrydzhang/jernerics.git", branch = "main", subdirectory = "packages/jernerics" }
+jernerics-server = { git = "https://github.com/jerrydzhang/jernerics.git", branch = "main", subdirectory = "packages/jernerics-server" }
 torch = { index = "pytorch-cu128" }
 
 [tool.jernerics]
