@@ -30,3 +30,5 @@ From: python:3.13-slim
     export LC_ALL=C.UTF-8
     export SHELL=/usr/bin/fish
     export PYTHONPATH=/work/libs/symbolic/src:/work/models/manifest/src
+    # Isolate tmux socket from the host so panes inherit container PATH
+    export TMUX_TMPDIR=/tmp/container-tmux
