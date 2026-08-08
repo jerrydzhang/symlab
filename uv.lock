@@ -570,7 +570,7 @@ wheels = [
 [[package]]
 name = "jernerics"
 version = "1.1.0"
-source = { git = "https://github.com/jerrydzhang/jernerics.git?subdirectory=packages%2Fjernerics&branch=beads-test#7c9283cc4d690c28cfe013566b42dfba3601aab5" }
+source = { git = "https://github.com/jerrydzhang/jernerics.git?subdirectory=packages%2Fjernerics&branch=main#99a511ca5d12737ff1e59a7e653c60ced24901a9" }
 dependencies = [
     { name = "cloudpickle" },
     { name = "httpx" },
@@ -587,7 +587,7 @@ dependencies = [
 [[package]]
 name = "jernerics-server"
 version = "0.1.0"
-source = { git = "https://github.com/jerrydzhang/jernerics.git?subdirectory=packages%2Fjernerics-server&branch=beads-test#7c9283cc4d690c28cfe013566b42dfba3601aab5" }
+source = { git = "https://github.com/jerrydzhang/jernerics.git?subdirectory=packages%2Fjernerics-server&branch=main#99a511ca5d12737ff1e59a7e653c60ced24901a9" }
 dependencies = [
     { name = "fastapi" },
     { name = "uvicorn", extra = ["standard"] },
@@ -1921,8 +1921,8 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "jernerics", git = "https://github.com/jerrydzhang/jernerics.git?subdirectory=packages%2Fjernerics&branch=beads-test" },
-    { name = "jernerics-server", git = "https://github.com/jerrydzhang/jernerics.git?subdirectory=packages%2Fjernerics-server&branch=beads-test" },
+    { name = "jernerics", git = "https://github.com/jerrydzhang/jernerics.git?subdirectory=packages%2Fjernerics&branch=main" },
+    { name = "jernerics-server", git = "https://github.com/jerrydzhang/jernerics.git?subdirectory=packages%2Fjernerics-server&branch=main" },
     { name = "manifest", editable = "models/manifest" },
     { name = "marimo", specifier = ">=0.23.14" },
     { name = "matplotlib", specifier = ">=3.11.1" },
