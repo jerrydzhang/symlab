@@ -8,7 +8,11 @@ From: python:3.13-slim
     README.md /build/project/README.md
 
 %post
-    apt-get update && apt-get install -y --no-install-recommends git ca-certificates tmux && rm -rf /var/lib/apt/lists/*
+    apt-get update && apt-get install -y --no-install-recommends \
+        git ca-certificates tmux \
+        fish less file tree procps htop \
+        bash-completion curl vim-nox && \
+    rm -rf /var/lib/apt/lists/*
     pip install --no-cache-dir uv
 
     cd /build/project
@@ -24,4 +28,5 @@ From: python:3.13-slim
     export PATH=/opt/venv/bin:$PATH
     export LANG=C.UTF-8
     export LC_ALL=C.UTF-8
+    export SHELL=/usr/bin/fish
     export PYTHONPATH=/work/libs/symbolic/src:/work/models/manifest/src
